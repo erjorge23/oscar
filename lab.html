@@ -1,0 +1,2296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Deployment Lab — Sesiones 5 & 6 · UNIE</title>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #03040f; font-family: system-ui,-apple-system,sans-serif; }
+  input[type=range] { -webkit-appearance: none; appearance: none; height: 5px; border-radius: 3px; outline: none; background: #111830; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 13px; height: 13px; border-radius: 50%; background: #6366f1; cursor: pointer; }
+  select option { background: #090d20; color: #e2e8f0; }
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: #060814; }
+  ::-webkit-scrollbar-thumb { background: #1a2448; border-radius: 3px; }
+  strong { font-weight: 700; }
+  em { font-style: italic; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const C = {
+  bg: '#03040f',
+  panel: '#060814',
+  card: '#090d20',
+  border: '#111830',
+  borderL: '#1a2448',
+  ind: '#6366f1',
+  indDim: 'rgba(99,102,241,0.13)',
+  amber: '#f59e0b',
+  amberDim: 'rgba(245,158,11,0.11)',
+  em: '#10b981',
+  emDim: 'rgba(16,185,129,0.11)',
+  cyan: '#22d3ee',
+  cyanDim: 'rgba(34,211,238,0.1)',
+  purple: '#a855f7',
+  purpleDim: 'rgba(168,85,247,0.13)',
+  red: '#ef4444',
+  redDim: 'rgba(239,68,68,0.1)',
+  sky: '#38bdf8',
+  text: '#e2e8f0',
+  sub: '#94a3b8',
+  muted: '#3d4f6e'
+};
+const mono = "'Courier New',monospace";
+const sans = "system-ui,-apple-system,sans-serif";
+const CASES = [{
+  id: 'health',
+  icon: '🏥',
+  sector: 'Salud',
+  col: C.em,
+  title: 'Resumen Clínico & Codificación Asistida',
+  org: 'Hospital universitario — 8 centros, 1.200 profesionales sanitarios',
+  objective: 'Automatizar resúmenes de historia clínica y codificación CIE-10 para reducir carga documental en urgencias y consultas externas.',
+  users: 1200,
+  freq: 40,
+  budget: 18000,
+  latency: 'Alta (<2s)',
+  sensitivity: 'Muy alta (PII/PHI)',
+  regulatory: 'RGPD · LOPDGDD · ENS · AI Act (alto riesgo)',
+  constraints: ['Datos no pueden salir de infraestructura EU', 'Auditoría obligatoria de cada decisión automática', 'Validación humana en toda inferencia clínica', 'Presupuesto cerrado, no ampliable en 18 meses'],
+  signals: ['30% del tiempo médico se consume en documentación', 'Tasa de error en codificación manual: 12%', 'Objetivo: reducir reingresos evitables un 15%']
+}, {
+  id: 'devtools',
+  icon: '💻',
+  sector: 'Tecnología',
+  col: C.sky,
+  title: 'Copiloto Técnico para Desarrolladores',
+  org: 'Empresa SaaS B2B — 45.000 desarrolladores activos en 60 países',
+  objective: 'Asistente embebido en IDE para autocompletar código, generar tests unitarios y responder consultas sobre la API propia de la plataforma.',
+  users: 45000,
+  freq: 120,
+  budget: 85000,
+  latency: 'Muy alta (<500ms)',
+  sensitivity: 'Media (código propietario)',
+  regulatory: 'SOC2 Type II · ISO 27001 · CCPA',
+  constraints: ['Latencia p99 < 500ms', 'Coste máximo $0.002/interacción', 'Disponibilidad 99.9%', 'Sin retención de código en proveedor externo'],
+  signals: ['NPS de herramientas internas: 62', 'Tiempo de onboarding a API: 3 semanas', 'Churn correlaciona con fricción técnica en primeras 48h']
+}, {
+  id: 'banking',
+  icon: '🏦',
+  sector: 'Banca & Seguros',
+  col: C.amber,
+  title: 'Atención al Cliente & Detección de Fraude Documental',
+  org: 'Banco mediano — 280.000 clientes activos, operación en 5 países EU',
+  objective: 'Chatbot regulatorio multilingüe para consultas de clientes y asistente de verificación de documentación en altas y tramitación de siniestros.',
+  users: 280000,
+  freq: 8,
+  budget: 120000,
+  latency: 'Alta (<3s)',
+  sensitivity: 'Muy alta (PII financiero)',
+  regulatory: 'DORA · GDPR · PSD2 · MiFID II · AI Act',
+  constraints: ['Explicabilidad completa de toda decisión automática', 'Human-in-the-loop obligatorio para denegaciones', 'Fallback local si falla proveedor principal', 'Auditoría regulatoria completa exportable'],
+  signals: ['Coste por interacción humana: €4,20', '68% de consultas son repetitivas y resolubles', 'Tasa fraude documental: 0,3% — pérdida media €12K/caso']
+}, {
+  id: 'retail',
+  icon: '📦',
+  sector: 'Retail & Logística',
+  col: C.purple,
+  title: 'Previsión de Demanda & Asistente Operativo',
+  org: 'Cadena de distribución — 320 almacenes, 8.500 operarios',
+  objective: 'Modelo de previsión de demanda para optimizar stock y asistente conversacional para consultas operativas de empleados de almacén.',
+  users: 8500,
+  freq: 30,
+  budget: 42000,
+  latency: 'Media (<5s)',
+  sensitivity: 'Baja-Media (datos operativos)',
+  regulatory: 'RGPD básico · NIS2 (infraestructura)',
+  constraints: ['Integración con ERP SAP existente', 'Operarios con baja alfabetización digital', 'Picos de volumen ×8 en campañas estacionales', 'ROI demostrable en 6 meses'],
+  signals: ['Rotura de stock: €2,1M/año de pérdida', 'Exceso inventario: €800K en capital parado', 'Tiempo búsqueda de información por operario: 18 min/turno']
+}];
+const ARCHS = [{
+  id: 'saas',
+  name: 'SaaS / API Externa',
+  icon: '☁️',
+  desc: 'Consumo directo de API de proveedor (OpenAI, Anthropic, Google) sin infraestructura propia.',
+  pros: ['Setup inmediato', 'Sin CAPEX', 'Modelos SOTA siempre actualizados', 'Escalabilidad automática'],
+  cons: ['Datos salen a tercero', 'Vendor lock-in', 'Coste variable impredecible', 'Latencia de red externa'],
+  bestFor: 'Prototipado, volumen bajo-medio, baja sensibilidad de dato',
+  ctrl: 20,
+  lat: 70,
+  cost: 82,
+  priv: 20,
+  scale: 90
+}, {
+  id: 'cloud_ow',
+  name: 'Open-Weight en Nube',
+  icon: '🔧',
+  desc: 'Modelo open-weight (Llama, Mistral, Qwen) desplegado en infraestructura cloud gestionada (AWS/Azure/GCP).',
+  pros: ['Datos en tu cloud', 'Control del modelo', 'Sin royalties por token', 'Fine-tuning posible'],
+  cons: ['Requiere MLOps', 'Rendimiento inferior a SOTA', 'Coste fijo de infraestructura', 'Mantenimiento continuo'],
+  bestFor: 'Datos sensibles, volumen alto, presupuesto fijo, necesidad de control',
+  ctrl: 70,
+  lat: 75,
+  cost: 52,
+  priv: 80,
+  scale: 65
+}, {
+  id: 'private',
+  name: 'Despliegue Privado',
+  icon: '🏛️',
+  desc: 'Infraestructura on-premise o cloud privada dedicada. Máximo control, mínima dependencia externa.',
+  pros: ['Máxima privacidad', 'Coste predecible', 'Sin latencia de red externa', 'Compliance total'],
+  cons: ['Alta inversión inicial (GPU)', 'Equipo especializado', 'Actualizaciones manuales', 'Escalado complejo'],
+  bestFor: 'Regulación estricta, PII/PHI sensible, volumen muy alto y predecible',
+  ctrl: 95,
+  lat: 90,
+  cost: 28,
+  priv: 95,
+  scale: 40
+}, {
+  id: 'edge',
+  name: 'Edge / On-Device',
+  icon: '📱',
+  desc: 'Modelo pequeño ejecutándose en el dispositivo del usuario (terminal, kiosco, smartphone).',
+  pros: ['Sin latencia de red', 'Funciona offline', 'Máxima privacidad', 'Sin coste por token'],
+  cons: ['Modelos muy limitados', 'Hardware dependiente', 'Actualizaciones complejas', 'No para tareas complejas'],
+  bestFor: 'Funciones simples, privacidad extrema, entornos sin conectividad',
+  ctrl: 90,
+  lat: 95,
+  cost: 68,
+  priv: 100,
+  scale: 30
+}, {
+  id: 'hybrid',
+  name: 'Híbrido',
+  icon: '⚡',
+  desc: 'Routing estratégico: datos sensibles en privado/edge, tareas complejas en API con datos anonimizados.',
+  pros: ['Optimización coste-privacidad', 'Routing inteligente por sensibilidad', 'Resiliente a fallos', 'Flexible por caso de uso'],
+  cons: ['Mayor complejidad operativa', 'Dos sistemas que mantener', 'Testing más complejo', 'Necesita lógica de routing'],
+  bestFor: 'Casos mixtos: datos de distinta sensibilidad, volumen variable, requisitos cruzados',
+  ctrl: 60,
+  lat: 75,
+  cost: 62,
+  priv: 72,
+  scale: 80
+}];
+const PROVIDERS = [{
+  id: 'gpt4o',
+  name: 'GPT-4o',
+  org: 'OpenAI',
+  col: C.em,
+  inp: 2.50,
+  cac: 1.25,
+  out: 10.00,
+  bat: 0.50,
+  fixed: 0,
+  note: 'SOTA · máxima capacidad razonamiento'
+}, {
+  id: 'mini',
+  name: 'GPT-4o mini',
+  org: 'OpenAI',
+  col: C.sky,
+  inp: 0.15,
+  cac: 0.075,
+  out: 0.60,
+  bat: 0.50,
+  fixed: 0,
+  note: 'Eficiente · tareas clasificación y extracción'
+}, {
+  id: 'llama',
+  name: 'Llama 3.3 70B',
+  org: 'Meta (self-hosted)',
+  col: C.purple,
+  inp: 0.59,
+  cac: 0.30,
+  out: 0.79,
+  bat: 0.30,
+  fixed: 0,
+  note: 'Open-weight · sin royalties · control total'
+}, {
+  id: 'ptu',
+  name: 'Azure PTU',
+  org: 'Microsoft Azure',
+  col: C.amber,
+  inp: 0,
+  cac: 0,
+  out: 0,
+  bat: 0,
+  fixed: 3200,
+  note: 'Capacidad reservada · throughput garantizado · SLA'
+}];
+const RISKS = [{
+  id: 'pii',
+  cat: 'Privacidad',
+  sev: 'Crítico',
+  name: 'Exposición de PII/PHI',
+  prob: 'Media',
+  impact: 'Muy alto',
+  mit: 'Anonimización, despliegue privado, DPA con proveedor, cifrado end-to-end'
+}, {
+  id: 'lock',
+  cat: 'Estrategia',
+  sev: 'Alto',
+  name: 'Vendor lock-in profundo',
+  prob: 'Alta',
+  impact: 'Alto',
+  mit: 'Multi-proveedor, open-weight como fallback, capa de abstracción de API'
+}, {
+  id: 'hallu',
+  cat: 'Calidad',
+  sev: 'Alto',
+  name: 'Alucinaciones / Errores factuales',
+  prob: 'Alta',
+  impact: 'Alto',
+  mit: 'RAG con fuentes verificadas, human-in-the-loop, evaluación continua'
+}, {
+  id: 'cost_drift',
+  cat: 'Finanzas',
+  sev: 'Medio',
+  name: 'Desbordamiento de coste variable',
+  prob: 'Media',
+  impact: 'Medio',
+  mit: 'Rate limiting, alertas de gasto, presupuesto con hard cap mensual'
+}, {
+  id: 'lat',
+  cat: 'Operativo',
+  sev: 'Alto',
+  name: 'Latencia fuera de SLA',
+  prob: 'Baja',
+  impact: 'Alto',
+  mit: 'Caching, batch para no-real-time, CDN, reserva de capacidad'
+}, {
+  id: 'comply',
+  cat: 'Legal',
+  sev: 'Crítico',
+  name: 'Incumplimiento regulatorio',
+  prob: 'Baja',
+  impact: 'Muy alto',
+  mit: 'DPO review, auditoría continua, clasificación AI Act risk tier'
+}, {
+  id: 'human',
+  cat: 'Gobernanza',
+  sev: 'Alto',
+  name: 'Over-reliance sin validación humana',
+  prob: 'Alta',
+  impact: 'Alto',
+  mit: 'Diseño HITL, confidence thresholds, formación del equipo operativo'
+}, {
+  id: 'obs',
+  cat: 'Técnico',
+  sev: 'Medio',
+  name: 'Falta de observabilidad y drift',
+  prob: 'Alta',
+  impact: 'Medio',
+  mit: 'MLOps pipeline, monitoring de calidad, alertas de degradación de modelo'
+}];
+const EXAMPLES = {
+  health: [{
+    layer: 'Estratégica',
+    decision: '¿Desplegar IA en urgencias o consultas externas primero?',
+    data: 'Tasa error codificación por servicio, coste por proceso, volumen',
+    source: 'HIS, SAP Salud, CMBD',
+    frequency: 'Mensual',
+    owner: 'Dirección Médica',
+    kpi: 'Reducción tiempo documentación ≥30%',
+    risk: 'Inversión sin ROI claro'
+  }, {
+    layer: 'Táctica',
+    decision: '¿Qué especialidades tienen mayor retorno en la fase 1?',
+    data: 'Volumen por especialidad, tasa error, tiempo medio por informe',
+    source: 'CMBD, Urgencias, Consultas',
+    frequency: 'Semanal',
+    owner: 'Jefe de Servicio',
+    kpi: 'Precisión CIE-10 >95% en piloto',
+    risk: 'Selección incorrecta de especialidad'
+  }, {
+    layer: 'Operativa',
+    decision: '¿Aprobar o corregir el resumen/código generado?',
+    data: 'Output del modelo, historia clínica completa del paciente',
+    source: 'LLM + HIS en tiempo real',
+    frequency: 'Tiempo real',
+    owner: 'Médico de turno',
+    kpi: 'Tiempo revisión <2 min · tasa aceptación >80%',
+    risk: 'Error no detectado con impacto clínico'
+  }],
+  devtools: [{
+    layer: 'Estratégica',
+    decision: '¿Construir copiloto propio o integrar GitHub Copilot/Cursor?',
+    data: 'Uso actual de herramientas, coste de build vs buy, diferenciación',
+    source: 'Product analytics, encuesta devs',
+    frequency: 'Mensual',
+    owner: 'CTO / CPO',
+    kpi: 'Time-to-first-value <1h para nuevo dev',
+    risk: 'Build demasiado costoso sin diferenciación real'
+  }, {
+    layer: 'Táctica',
+    decision: '¿Qué funciones priorizar en el roadmap del trimestre?',
+    data: 'Frecuencia de uso por feature, NPS por segmento, coste de soporte',
+    source: 'Mixpanel, Zendesk, encuestas NPS',
+    frequency: 'Semanal',
+    owner: 'Product Manager',
+    kpi: 'Reducción tickets soporte 25%',
+    risk: 'Priorizar features de bajo impacto real'
+  }, {
+    layer: 'Operativa',
+    decision: '¿Aceptar sugerencia de código o modificar antes de aplicar?',
+    data: 'Sugerencia del modelo + contexto del código actual',
+    source: 'IDE extension + API en <500ms',
+    frequency: 'Tiempo real',
+    owner: 'Desarrollador',
+    kpi: 'Aceptación >40% de sugerencias · latencia p99 <500ms',
+    risk: 'Sugerencia incorrecta aplicada sin revisión'
+  }],
+  banking: [{
+    layer: 'Estratégica',
+    decision: '¿Desplegar chatbot regulatorio o priorizar detección de fraude?',
+    data: 'Volumen consultas repetitivas, pérdidas por fraude, coste operacional',
+    source: 'CRM, Core bancario, Compliance reports',
+    frequency: 'Mensual',
+    owner: 'Comité Digital',
+    kpi: 'Reducción coste por interacción ≥40%',
+    risk: 'Alineación regulatoria insuficiente antes del lanzamiento'
+  }, {
+    layer: 'Táctica',
+    decision: '¿Qué tipologías de consulta se automatizan en fase 1?',
+    data: 'Clasificación de consultas entrantes, tasa de resolución, escalado',
+    source: 'Contact center CRM, tickets históricos',
+    frequency: 'Semanal',
+    owner: 'Director Operaciones',
+    kpi: 'Deflexión >65% en consultas fase 1',
+    risk: 'Automatizar consultas que requieren juicio humano'
+  }, {
+    layer: 'Operativa',
+    decision: '¿Aprobar verificación documental o escalar a revisor humano?',
+    data: 'Documento escaneado + metadata + historial del cliente',
+    source: 'OCR + LLM + core bancario en tiempo real',
+    frequency: 'Tiempo real',
+    owner: 'Gestor de alta/siniestros',
+    kpi: 'FP rate <0.5% · tiempo verificación <30s',
+    risk: 'Fraude documental no detectado o falso positivo'
+  }],
+  retail: [{
+    layer: 'Estratégica',
+    decision: '¿Priorizar previsión de demanda o asistente operativo de almacén?',
+    data: 'Impacto económico rotura stock vs coste tiempo búsqueda información',
+    source: 'ERP SAP, P&L operativo',
+    frequency: 'Mensual',
+    owner: 'Director de Operaciones',
+    kpi: 'Reducción rotura stock ≥30% en 6 meses',
+    risk: 'Invertir en el caso de menor ROI primero'
+  }, {
+    layer: 'Táctica',
+    decision: '¿Qué categorías de producto incluir en el modelo predictivo inicial?',
+    data: 'Histórico ventas, estacionalidad, rotación por SKU',
+    source: 'SAP BW, datos POS',
+    frequency: 'Semanal',
+    owner: 'Responsable Planning',
+    kpi: 'MAPE <12% en categorías piloto',
+    risk: 'Modelo entrenado con datos de calidad insuficiente'
+  }, {
+    layer: 'Operativa',
+    decision: '¿Qué ubicación de picking recomienda el sistema para este pedido?',
+    data: 'Consulta del operario + estado de stock + distribución almacén',
+    source: 'WMS + LLM en <5s',
+    frequency: 'Tiempo real',
+    owner: 'Operario de almacén',
+    kpi: 'Tiempo medio picking −20% · tasa error <0.5%',
+    risk: 'Recomendación errónea con picking incorrecto'
+  }]
+};
+
+// ── Shared components ──
+function Prompt({
+  txt
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.indDim,
+      border: '1px solid rgba(99,102,241,0.22)',
+      borderLeft: `3px solid ${C.ind}`,
+      borderRadius: 6,
+      padding: '10px 14px',
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: C.ind,
+      fontFamily: mono,
+      fontWeight: 700,
+      marginBottom: 3,
+      letterSpacing: 1
+    }
+  }, "\uD83D\uDCA1 PROMPT DID\xC1CTICO"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: C.text,
+      lineHeight: 1.68,
+      fontFamily: sans
+    },
+    dangerouslySetInnerHTML: {
+      __html: txt
+    }
+  }));
+}
+function SL({
+  children,
+  col
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: col || C.muted,
+      fontFamily: mono,
+      fontWeight: 700,
+      letterSpacing: 2,
+      marginBottom: 8
+    }
+  }, children);
+}
+function Card({
+  children,
+  col,
+  style = {}
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.card,
+      border: `1px solid ${col ? col + '28' : C.border}`,
+      borderLeft: col ? `3px solid ${col}` : `1px solid ${C.border}`,
+      borderRadius: 7,
+      padding: 12,
+      ...style
+    }
+  }, children);
+}
+function Bar({
+  label,
+  val,
+  col
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 7
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      marginBottom: 3
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: C.sub,
+      fontFamily: mono
+    }
+  }, label), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: col || C.ind,
+      fontFamily: mono,
+      fontWeight: 700
+    }
+  }, val)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 5,
+      background: C.border,
+      borderRadius: 3,
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: '100%',
+      width: `${val}%`,
+      background: col || C.ind,
+      borderRadius: 3,
+      transition: 'width 0.4s'
+    }
+  })));
+}
+function Tag({
+  label,
+  col
+}) {
+  return /*#__PURE__*/React.createElement("span", {
+    style: {
+      background: `${col}18`,
+      border: `1px solid ${col}35`,
+      color: col,
+      fontSize: 9,
+      fontFamily: mono,
+      padding: '1px 6px',
+      borderRadius: 3,
+      marginRight: 4,
+      marginBottom: 3,
+      display: 'inline-block'
+    }
+  }, label);
+}
+function btnStyle(primary, disabled) {
+  return {
+    padding: '5px 14px',
+    fontFamily: mono,
+    fontSize: 11,
+    fontWeight: 700,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.3 : 1,
+    borderRadius: 4,
+    background: primary ? C.ind : C.card,
+    color: primary ? '#fff' : C.text,
+    border: `1px solid ${primary ? C.ind : C.border}`,
+    transition: 'opacity 0.2s'
+  };
+}
+
+// ── M0: Welcome ──
+function M0() {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      paddingTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 48,
+      marginBottom: 10
+    }
+  }, "\uD83E\uDDE0"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.ind,
+      fontFamily: mono,
+      fontSize: 18,
+      fontWeight: 700,
+      letterSpacing: 3,
+      marginBottom: 5
+    }
+  }, "AI DEPLOYMENT LAB"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.amber,
+      fontFamily: mono,
+      fontSize: 10,
+      marginBottom: 4,
+      letterSpacing: 2
+    }
+  }, "DISE\xD1O DE SISTEMAS DE INFORMACI\xD3N"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 11,
+      marginBottom: 22,
+      fontFamily: sans
+    }
+  }, "Sesiones 5 & 6 \xB7 Informaci\xF3n para decidir \xB7 Gesti\xF3n de recursos computacionales \xB7 UNIE Universidad"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gap: 10,
+      maxWidth: 560,
+      margin: '0 auto 20px',
+      textAlign: 'left'
+    }
+  }, [['5', C.ind, 'Sesión 5 — Decisiones', 'Modela qué información necesitas para decidir bien en cada capa organizacional.'], ['6', C.amber, 'Sesión 6 — Cómputo', 'Simula costes, latencia y arquitectura de despliegue de IA con datos reales.'], ['∑', C.em, 'Integrador', 'Genera un brief ejecutivo defendible ante dirección con todos los artefactos.']].map(([n, col, t, d]) => /*#__PURE__*/React.createElement("div", {
+    key: n,
+    style: {
+      background: C.card,
+      border: `1px solid ${col}22`,
+      borderTop: `3px solid ${col}`,
+      borderRadius: 7,
+      padding: '12px 11px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: col,
+      fontFamily: mono,
+      fontSize: 20,
+      fontWeight: 700,
+      marginBottom: 5
+    }
+  }, n), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.text,
+      fontSize: 11,
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 10,
+      lineHeight: 1.5
+    }
+  }, d)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 7,
+      maxWidth: 480,
+      margin: '0 auto 18px',
+      textAlign: 'left'
+    }
+  }, [['📋', 'Brief del Caso'], ['🗺️', 'Mapa de Decisiones'], ['🏗️', 'Arquitectura'], ['💰', 'Economía del Cómputo'], ['⚠️', 'Riesgo & Gobernanza'], ['📄', 'Brief Ejecutivo']].map(([ic, tx]) => /*#__PURE__*/React.createElement("div", {
+    key: tx,
+    style: {
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 5,
+      padding: '6px 10px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 7
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13
+    }
+  }, ic), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.sub,
+      fontSize: 11
+    }
+  }, tx)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.indDim,
+      border: '1px solid rgba(99,102,241,0.2)',
+      borderRadius: 8,
+      padding: '12px 18px',
+      maxWidth: 560,
+      margin: '0 auto',
+      textAlign: 'left'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.ind,
+      fontFamily: mono,
+      fontSize: 9,
+      fontWeight: 700,
+      letterSpacing: 2,
+      marginBottom: 8
+    }
+  }, "\u23F1 PLANIFICACI\xD3N \u2014 4 HORAS \xB7 2 SESIONES"), [['S5 · 0:00–0:15', 'Introducción & selección de caso', 'Módulo 1 · Brief'], ['S5 · 0:15–1:00', 'Mapa Decisión → Dato → KPI', 'Módulo 2 · Tablero'], ['S5 · 1:00–1:30', 'Puesta en común · defensa oral', 'Módulo 2 revisión'], ['S5 · 1:30–2:00', 'Arquitecturas de despliegue', 'Módulo 3 · Intro'], ['S6 · 0:00–0:45', 'Economía del cómputo · sliders', 'Módulo 4 · Simulación'], ['S6 · 0:45–1:15', 'Riesgo & gobernanza · AI Act', 'Módulo 5 · Selección'], ['S6 · 1:15–2:00', 'Brief ejecutivo · presentación', 'Módulo 6 · Entregable']].map(([t, a, m]) => /*#__PURE__*/React.createElement("div", {
+    key: t,
+    style: {
+      display: 'flex',
+      gap: 10,
+      marginBottom: 5,
+      fontSize: 10,
+      fontFamily: mono
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.ind,
+      flexShrink: 0,
+      minWidth: 110
+    }
+  }, t), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.text,
+      flex: 1
+    }
+  }, a), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.muted,
+      flexShrink: 0
+    }
+  }, m)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 11,
+      fontFamily: mono,
+      marginTop: 16
+    }
+  }, "Pulsa ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.amber
+    }
+  }, "Siguiente \u2192"), " para elegir tu caso"));
+}
+
+// ── M1: Case Brief ──
+function M1({
+  sel,
+  setSel,
+  decs,
+  setDecs,
+  assu,
+  setAssu
+}) {
+  const c = CASES.find(x => x.id === sel) || CASES[0];
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Prompt, {
+    txt: "Eres consultor/a de IA. Antes de dise\xF1ar cualquier soluci\xF3n debes <strong>comprender el caso en profundidad</strong>. Lee el brief completo, identifica las restricciones clave y formula <strong>3 decisiones cr\xEDticas</strong> que guiar\xE1n todo tu an\xE1lisis posterior."
+  }), /*#__PURE__*/React.createElement(SL, null, "SELECCIONA TU CASO"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 8,
+      marginBottom: 16
+    }
+  }, CASES.map(ca => /*#__PURE__*/React.createElement("div", {
+    key: ca.id,
+    onClick: () => setSel(ca.id),
+    style: {
+      background: C.card,
+      border: `2px solid ${sel === ca.id ? ca.col : C.border}`,
+      borderRadius: 7,
+      padding: '10px 12px',
+      cursor: 'pointer',
+      transition: 'all 0.2s'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 7,
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 17
+    }
+  }, ca.icon), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: ca.col,
+      fontSize: 9,
+      fontFamily: mono,
+      fontWeight: 700
+    }
+  }, ca.sector.toUpperCase()), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.text,
+      fontSize: 11,
+      fontWeight: 700
+    }
+  }, ca.title))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 10
+    }
+  }, ca.org)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 14,
+      flexWrap: 'wrap'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 270
+    }
+  }, /*#__PURE__*/React.createElement(Card, {
+    col: c.col,
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement(SL, null, "OBJETIVO DE NEGOCIO"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.text,
+      fontSize: 12,
+      lineHeight: 1.6
+    }
+  }, c.objective)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 8,
+      marginBottom: 10
+    }
+  }, [['Usuarios', c.users.toLocaleString('es-ES')], ['Presupuesto/mes', `€${c.budget.toLocaleString('es-ES')}`], ['Latencia req.', c.latency], ['Sensibilidad dato', c.sensitivity]].map(([l, v]) => /*#__PURE__*/React.createElement(Card, {
+    key: l
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: C.muted,
+      fontFamily: mono,
+      marginBottom: 3
+    }
+  }, l.toUpperCase()), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: c.col,
+      fontSize: 12,
+      fontWeight: 700,
+      fontFamily: mono
+    }
+  }, v)))), /*#__PURE__*/React.createElement(Card, {
+    col: C.red,
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement(SL, {
+    col: C.red
+  }, "MARCO REGULATORIO"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.red,
+      fontSize: 11,
+      fontFamily: mono,
+      lineHeight: 1.6
+    }
+  }, c.regulatory)), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(SL, null, "RESTRICCIONES CLAVE"), c.constraints.map((r, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: 'flex',
+      gap: 6,
+      marginBottom: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.amber,
+      fontFamily: mono,
+      flexShrink: 0
+    }
+  }, "\u2192"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.sub,
+      fontSize: 11,
+      lineHeight: 1.4
+    }
+  }, r))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 240
+    }
+  }, /*#__PURE__*/React.createElement(Card, {
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement(SL, null, "SE\xD1ALES DEL CONTEXTO"), c.signals.map((s, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: 'flex',
+      gap: 6,
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.em,
+      fontFamily: mono
+    }
+  }, "\u25C6"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.sub,
+      fontSize: 11,
+      lineHeight: 1.4
+    }
+  }, s)))), /*#__PURE__*/React.createElement(Card, {
+    col: C.ind,
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement(SL, {
+    col: C.ind
+  }, "TUS 3 DECISIONES CR\xCDTICAS"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 10,
+      marginBottom: 8
+    }
+  }, "\xBFQu\xE9 3 decisiones son las m\xE1s importantes del proyecto?"), [0, 1, 2].map(i => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      marginBottom: 9
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: C.ind,
+      fontFamily: mono,
+      marginBottom: 3
+    }
+  }, "DECISI\xD3N ", i + 1), /*#__PURE__*/React.createElement("input", {
+    value: decs[i] || '',
+    onChange: e => {
+      const d = [...decs];
+      d[i] = e.target.value;
+      setDecs(d);
+    },
+    placeholder: ['ej. ¿API externa o despliegue privado?', 'ej. ¿Qué datos podemos usar y cuáles no?', 'ej. ¿Cómo validamos la salida del modelo?'][i],
+    style: {
+      width: '100%',
+      background: C.bg,
+      border: `1px solid ${C.borderL}`,
+      borderRadius: 4,
+      padding: '6px 9px',
+      color: C.text,
+      fontSize: 11,
+      fontFamily: sans,
+      outline: 'none',
+      boxSizing: 'border-box'
+    }
+  })))), /*#__PURE__*/React.createElement(Card, {
+    col: C.amber
+  }, /*#__PURE__*/React.createElement(SL, {
+    col: C.amber
+  }, "3 SUPUESTOS DE PARTIDA"), [0, 1, 2].map(i => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      marginBottom: 9
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: C.amber,
+      fontFamily: mono,
+      marginBottom: 3
+    }
+  }, "SUPUESTO ", i + 1), /*#__PURE__*/React.createElement("input", {
+    value: assu[i] || '',
+    onChange: e => {
+      const a = [...assu];
+      a[i] = e.target.value;
+      setAssu(a);
+    },
+    placeholder: ['ej. Equipo con experiencia en APIs REST', 'ej. Los datos ya están estructurados', 'ej. El usuario acepta 3s de latencia'][i],
+    style: {
+      width: '100%',
+      background: C.bg,
+      border: `1px solid ${C.borderL}`,
+      borderRadius: 4,
+      padding: '6px 9px',
+      color: C.text,
+      fontSize: 11,
+      fontFamily: sans,
+      outline: 'none',
+      boxSizing: 'border-box'
+    }
+  })))))));
+}
+
+// ── M2: Decision Map ──
+function M2({
+  board,
+  setBoard,
+  sel
+}) {
+  const c = CASES.find(x => x.id === sel) || CASES[0];
+  const layCol = {
+    'Estratégica': C.purple,
+    'Táctica': C.amber,
+    'Operativa': C.em
+  };
+  const fields = [{
+    k: 'decision',
+    lbl: 'Decisión',
+    ph: 'qué se decide...'
+  }, {
+    k: 'data',
+    lbl: 'Dato necesario',
+    ph: 'información requerida...'
+  }, {
+    k: 'source',
+    lbl: 'Fuente del dato',
+    ph: 'origen del dato...'
+  }, {
+    k: 'frequency',
+    lbl: 'Frecuencia',
+    tp: 'sel',
+    opts: ['Tiempo real', 'Horaria', 'Diaria', 'Semanal', 'Mensual']
+  }, {
+    k: 'owner',
+    lbl: 'Responsable',
+    ph: 'área dueña...'
+  }, {
+    k: 'kpi',
+    lbl: 'KPI asociado',
+    ph: 'métrica de éxito...'
+  }, {
+    k: 'risk',
+    lbl: 'Riesgo si falla',
+    ph: 'consecuencia...'
+  }];
+  const loadEx = () => {
+    if (EXAMPLES[sel]) setBoard(EXAMPLES[sel].map(r => ({
+      ...r
+    })));
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Prompt, {
+    txt: "N\xFAcleo de la <strong>Sesi\xF3n 5</strong>. Para cada capa de decisi\xF3n \u2014estrat\xE9gica, t\xE1ctica, operativa\u2014 identifica: <em>qu\xE9 se decide, con qu\xE9 dato, de qu\xE9 fuente, con qu\xE9 frecuencia, qui\xE9n valida y c\xF3mo medimos si la decisi\xF3n mejor\xF3</em>. Sin este mapa, el despliegue de IA no tiene fundamento informacional."
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(SL, null, "TABLERO TRAZABILIDAD: DECISI\xD3N \u2192 DATO \u2192 KPI"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 10
+    }
+  }, "Caso: ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: c.col
+    }
+  }, c.title))), /*#__PURE__*/React.createElement("button", {
+    onClick: loadEx,
+    style: {
+      padding: '5px 12px',
+      fontFamily: mono,
+      fontSize: 10,
+      cursor: 'pointer',
+      borderRadius: 4,
+      background: C.indDim,
+      color: C.ind,
+      border: `1px solid ${C.ind}40`
+    }
+  }, "Cargar ejemplo \u2197")), board.map((row, ri) => /*#__PURE__*/React.createElement(Card, {
+    key: ri,
+    col: layCol[row.layer],
+    style: {
+      marginBottom: 11
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 7,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 7,
+      height: 7,
+      borderRadius: '50%',
+      background: layCol[row.layer]
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: layCol[row.layer],
+      fontFamily: mono,
+      fontSize: 11,
+      fontWeight: 700
+    }
+  }, row.layer.toUpperCase())), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gap: 8
+    }
+  }, fields.map(f => /*#__PURE__*/React.createElement("div", {
+    key: f.k
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: C.muted,
+      fontFamily: mono,
+      marginBottom: 3
+    }
+  }, f.lbl.toUpperCase()), f.tp === 'sel' ? /*#__PURE__*/React.createElement("select", {
+    value: row[f.k],
+    onChange: e => {
+      const b = [...board];
+      b[ri][f.k] = e.target.value;
+      setBoard(b);
+    },
+    style: {
+      width: '100%',
+      background: C.bg,
+      border: `1px solid ${C.borderL}`,
+      borderRadius: 4,
+      padding: '5px 7px',
+      color: C.text,
+      fontSize: 11,
+      fontFamily: mono
+    }
+  }, f.opts.map(o => /*#__PURE__*/React.createElement("option", {
+    key: o
+  }, o))) : /*#__PURE__*/React.createElement("input", {
+    value: row[f.k],
+    onChange: e => {
+      const b = [...board];
+      b[ri][f.k] = e.target.value;
+      setBoard(b);
+    },
+    placeholder: f.ph,
+    style: {
+      width: '100%',
+      background: C.bg,
+      border: `1px solid ${C.borderL}`,
+      borderRadius: 4,
+      padding: '5px 7px',
+      color: C.text,
+      fontSize: 11,
+      fontFamily: sans,
+      outline: 'none',
+      boxSizing: 'border-box'
+    }
+  })))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gap: 10,
+      marginTop: 6
+    }
+  }, [[C.purple, 'Dato Estratégico', 'Alta latencia tolerable, alta confianza. Fuentes: BI, reports, benchmarks. Owner: Dirección.'], [C.amber, 'Dato Táctico', 'Latencia media. Semanal. Combina analítica y operativa. Owner: Área funcional.'], [C.em, 'Dato Operativo', 'Latencia crítica <1s. Streaming, APIs, eventos. Owner: Sistema o usuario en tiempo real.']].map(([col, t, d]) => /*#__PURE__*/React.createElement("div", {
+    key: t,
+    style: {
+      background: `${col}0f`,
+      border: `1px solid ${col}22`,
+      borderRadius: 6,
+      padding: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: col,
+      fontSize: 9,
+      fontFamily: mono,
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, t.toUpperCase()), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 10,
+      lineHeight: 1.5
+    }
+  }, d)))));
+}
+
+// ── M3: Architecture ──
+function M3({
+  selArch,
+  setSelArch,
+  sel
+}) {
+  const c = CASES.find(x => x.id === sel) || CASES[0];
+  const arch = ARCHS.find(a => a.id === selArch);
+  const checks = [[`Sensibilidad: ${c.sensitivity}`, arch ? arch.priv > 60 : false, arch ? arch.priv > 60 ? 'Encaja' : 'Riesgo' : '—'], [`Latencia: ${c.latency}`, arch ? arch.lat > 65 : false, arch ? arch.lat > 65 ? 'Encaja' : 'Revisar' : '—'], [`Presupuesto: €${c.budget.toLocaleString('es-ES')}/mes`, arch ? arch.cost > 50 : false, arch ? arch.cost > 50 ? 'Posible' : 'Ajustado' : '—']];
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Prompt, {
+    txt: "Este m\xF3dulo conecta las <strong>decisiones de informaci\xF3n</strong> (Sesi\xF3n 5) con las <strong>decisiones de infraestructura</strong> (Sesi\xF3n 6). Elige el patr\xF3n de despliegue que mejor encaje con las restricciones del caso: latencia requerida, sensibilidad del dato, presupuesto disponible y escalabilidad esperada."
+  }), /*#__PURE__*/React.createElement(SL, null, "PATR\xD3N DE DESPLIEGUE"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gap: 8,
+      marginBottom: 14
+    }
+  }, ARCHS.map(a => /*#__PURE__*/React.createElement("div", {
+    key: a.id,
+    onClick: () => setSelArch(a.id),
+    style: {
+      background: C.card,
+      border: `2px solid ${selArch === a.id ? C.ind : C.border}`,
+      borderRadius: 7,
+      padding: '10px 11px',
+      cursor: 'pointer',
+      transition: 'all 0.2s'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 18,
+      marginBottom: 5
+    }
+  }, a.icon), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: selArch === a.id ? C.ind : C.text,
+      fontSize: 11,
+      fontWeight: 700,
+      marginBottom: 3
+    }
+  }, a.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 9,
+      lineHeight: 1.4
+    }
+  }, a.desc.substring(0, 65), "\u2026")))), arch && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 14,
+      flexWrap: 'wrap'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 250
+    }
+  }, /*#__PURE__*/React.createElement(Card, {
+    col: C.ind,
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 22
+    }
+  }, arch.icon), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.ind,
+      fontFamily: mono,
+      fontSize: 13,
+      fontWeight: 700
+    }
+  }, arch.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 10,
+      marginTop: 2
+    }
+  }, arch.bestFor))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: C.em,
+      fontFamily: mono,
+      fontWeight: 700,
+      marginBottom: 5
+    }
+  }, "\u2713 VENTAJAS"), arch.pros.map((p, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      color: C.text,
+      fontSize: 11,
+      marginBottom: 3
+    }
+  }, "\xB7 ", p))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: C.red,
+      fontFamily: mono,
+      fontWeight: 700,
+      marginBottom: 5
+    }
+  }, "\u2717 LIMITACIONES"), arch.cons.map((p, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      color: C.sub,
+      fontSize: 11,
+      marginBottom: 3
+    }
+  }, "\xB7 ", p)))), /*#__PURE__*/React.createElement(Card, {
+    col: C.amber
+  }, /*#__PURE__*/React.createElement(SL, {
+    col: C.amber
+  }, "ENCAJE CON EL CASO"), checks.map(([label, ok, verdict]) => /*#__PURE__*/React.createElement("div", {
+    key: label,
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      marginBottom: 6,
+      padding: '4px 0',
+      borderBottom: `1px solid ${C.border}`
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.sub,
+      fontSize: 10
+    }
+  }, label), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: ok ? C.em : C.amber,
+      fontFamily: mono,
+      fontSize: 10,
+      fontWeight: 700
+    }
+  }, verdict))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 220
+    }
+  }, /*#__PURE__*/React.createElement(Card, {
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement(SL, null, "RADAR DE CARACTER\xCDSTICAS"), [['Control del dato', arch.ctrl, C.ind], ['Latencia', arch.lat, C.cyan], ['Rentabilidad', arch.cost, C.em], ['Privacidad', arch.priv, C.purple], ['Escalabilidad', arch.scale, C.amber]].map(([l, v, col]) => /*#__PURE__*/React.createElement(Bar, {
+    key: l,
+    label: l,
+    val: v,
+    col: col
+  }))), /*#__PURE__*/React.createElement(Card, {
+    col: C.em
+  }, /*#__PURE__*/React.createElement(SL, {
+    col: C.em
+  }, "CAPAS DE ARQUITECTURA"), [['Usuario', '→ Interface / App Layer'], ['Orquestación', '→ RAG, guardrails, routing'], ['Modelo', `→ ${arch.name}`], ['Datos', '→ Vector DB, contexto, caché'], ['Seguridad', '→ Auth, PII filter, rate limit'], ['Observabilidad', '→ Logs, métricas, alertas drift']].map(([l, v]) => /*#__PURE__*/React.createElement("div", {
+    key: l,
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      marginBottom: 4,
+      fontSize: 10,
+      fontFamily: mono
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.muted
+    }
+  }, l), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.sub
+    }
+  }, v)))))));
+}
+
+// ── M4: Compute Economics ──
+function M4({
+  sel
+}) {
+  const c = CASES.find(x => x.id === sel) || CASES[0];
+  const [users, setUsers] = React.useState(c.users);
+  const [freq, setFreq] = React.useState(c.freq);
+  const [avgTok, setAvgTok] = React.useState(1200);
+  const [outR, setOutR] = React.useState(30);
+  const [cacR, setCacR] = React.useState(25);
+  const [batR, setBatR] = React.useState(20);
+  const mTok = users * freq * avgTok;
+  const inpTok = mTok * (1 - outR / 100);
+  const outTok = mTok * (outR / 100);
+  const cacTok = inpTok * (cacR / 100);
+  const batTok = mTok * (batR / 100);
+  const calc = p => {
+    if (p.id === 'ptu') return p.fixed;
+    const inp = (inpTok - cacTok) / 1e6 * p.inp;
+    const cac = cacTok / 1e6 * p.cac;
+    const out = outTok / 1e6 * p.out;
+    const bat = batTok / 1e6 * (p.inp * p.bat);
+    return Math.max(0, inp + cac + out - bat);
+  };
+  const costs = PROVIDERS.map(p => ({
+    ...p,
+    cost: calc(p)
+  }));
+  const maxC = Math.max(...costs.map(x => x.cost));
+  const minC = Math.min(...costs.filter(x => x.cost > 0).map(x => x.cost));
+  const sliders = [['Usuarios activos/mes', users, setUsers, 100, 300000, 500, ''], ['Consultas/usuario/mes', freq, setFreq, 1, 500, 1, ''], ['Tokens promedio/consulta', avgTok, setAvgTok, 200, 16000, 100, ''], ['Ratio output tokens', outR, setOutR, 10, 70, 5, '%'], ['Ratio caché (%)', cacR, setCacR, 0, 80, 5, '%'], ['Ratio batch (%)', batR, setBatR, 0, 70, 5, '%']];
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Prompt, {
+    txt: "N\xFAcleo de la <strong>Sesi\xF3n 6</strong>. Desplegar IA no es solo elegir un modelo \u2014 es gestionar <em>coste por token, caching, batch, throughput y coste fijo vs variable</em>. Ajusta los par\xE1metros de tu caso y observa c\xF3mo var\xEDa el coste mensual por proveedor y modalidad."
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 14,
+      flexWrap: 'wrap'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 240
+    }
+  }, /*#__PURE__*/React.createElement(Card, {
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement(SL, null, "PAR\xC1METROS \u2014 ", c.title.substring(0, 30).toUpperCase(), "\u2026"), sliders.map(([lbl, val, set, min, max, step, unit]) => /*#__PURE__*/React.createElement("div", {
+    key: lbl,
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      marginBottom: 3
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: C.sub,
+      fontFamily: mono
+    }
+  }, lbl), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: C.ind,
+      fontFamily: mono,
+      fontWeight: 700
+    }
+  }, val.toLocaleString('es-ES'), unit)), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: min,
+    max: max,
+    step: step,
+    value: val,
+    onChange: e => set(Number(e.target.value)),
+    style: {
+      width: '100%',
+      accentColor: C.ind
+    }
+  })))), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(SL, null, "VOLUMEN MENSUAL ESTIMADO"), [['Total tokens/mes', (mTok / 1e6).toFixed(1) + 'M', C.text], ['Tokens input', (inpTok / 1e6).toFixed(1) + 'M', C.sky], ['Tokens output', (outTok / 1e6).toFixed(1) + 'M', C.purple], ['Tokens cacheados', (cacTok / 1e6).toFixed(1) + 'M', C.em], ['Tokens en batch', (batTok / 1e6).toFixed(1) + 'M', C.amber]].map(([l, v, col]) => /*#__PURE__*/React.createElement("div", {
+    key: l,
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      marginBottom: 5,
+      padding: '3px 0',
+      borderBottom: `1px solid ${C.border}`
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.muted,
+      fontSize: 10,
+      fontFamily: mono
+    }
+  }, l), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: col,
+      fontSize: 11,
+      fontFamily: mono,
+      fontWeight: 700
+    }
+  }, v))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1.3,
+      minWidth: 270
+    }
+  }, /*#__PURE__*/React.createElement(SL, null, "COSTE MENSUAL ESTIMADO POR MODALIDAD"), costs.map(p => /*#__PURE__*/React.createElement("div", {
+    key: p.id,
+    style: {
+      marginBottom: 11
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      marginBottom: 3
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: p.col,
+      fontFamily: mono,
+      fontSize: 11,
+      fontWeight: 700
+    }
+  }, p.name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.muted,
+      fontSize: 9,
+      marginLeft: 6
+    }
+  }, p.org)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: p.cost === minC ? C.em : C.text,
+      fontFamily: mono,
+      fontSize: 13,
+      fontWeight: 700
+    }
+  }, "\u20AC", p.cost.toLocaleString('es-ES', {
+    maximumFractionDigits: 0
+  }), p.cost === minC && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.em,
+      fontSize: 9,
+      marginLeft: 4
+    }
+  }, "\u2190 M\xCDN"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 8,
+      background: C.border,
+      borderRadius: 4,
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: '100%',
+      width: `${maxC > 0 ? p.cost / maxC * 100 : 0}%`,
+      background: p.col,
+      borderRadius: 4,
+      transition: 'width 0.4s'
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 9,
+      marginTop: 2,
+      fontFamily: mono
+    }
+  }, p.note))), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      marginTop: 4,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement(SL, null, "PRECIOS DE REFERENCIA (por 1M tokens)"), /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: '100%',
+      fontSize: 10,
+      fontFamily: mono,
+      borderCollapse: 'collapse'
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, ['Modelo', 'Input', 'Cached', 'Output', 'Batch −'].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    style: {
+      color: C.muted,
+      textAlign: 'left',
+      padding: '4px 6px',
+      borderBottom: `1px solid ${C.border}`,
+      fontSize: 9
+    }
+  }, h)))), /*#__PURE__*/React.createElement("tbody", null, PROVIDERS.filter(p => p.id !== 'ptu').map(p => /*#__PURE__*/React.createElement("tr", {
+    key: p.id,
+    style: {
+      borderBottom: `1px solid ${C.border}`
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: p.col,
+      padding: '4px 6px',
+      fontWeight: 700
+    }
+  }, p.name), /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: C.text,
+      padding: '4px 6px'
+    }
+  }, "$", p.inp.toFixed(2)), /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: C.em,
+      padding: '4px 6px'
+    }
+  }, "$", p.cac.toFixed(3)), /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: C.sky,
+      padding: '4px 6px'
+    }
+  }, "$", p.out.toFixed(2)), /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: C.amber,
+      padding: '4px 6px'
+    }
+  }, "\u2212", p.bat * 100, "%"))), /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: C.amber,
+      padding: '4px 6px',
+      fontWeight: 700
+    }
+  }, "Azure PTU"), /*#__PURE__*/React.createElement("td", {
+    colSpan: 4,
+    style: {
+      color: C.muted,
+      padding: '4px 6px',
+      fontSize: 9
+    }
+  }, "Fijo ~\u20AC3.200/mes \xB7 Throughput garantizado \xB7 Sin pago por token"))))), /*#__PURE__*/React.createElement(Card, {
+    col: C.cyan
+  }, /*#__PURE__*/React.createElement(SL, {
+    col: C.cyan
+  }, "PREGUNTAS DE REFLEXI\xD3N \u2014 SESI\xD3N 6"), ['¿Cuándo conviene capacidad reservada (PTU) vs pay-as-you-go?', '¿Qué parte del flujo puede ir a batch y cuál requiere tiempo real?', '¿Qué contexto puede cachearse o resumirse para reducir coste?', '¿Qué trade-off aceptas entre velocidad, coste, control y portabilidad?', '¿Cómo afecta el tamaño del contexto al coste total por consulta?'].map((q, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: 'flex',
+      gap: 6,
+      marginBottom: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.cyan,
+      fontFamily: mono,
+      fontSize: 10,
+      flexShrink: 0
+    }
+  }, "\u2192"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.sub,
+      fontSize: 10,
+      lineHeight: 1.45
+    }
+  }, q)))))));
+}
+
+// ── M5: Risk & Governance ──
+function M5({
+  selRisks,
+  setSelRisks,
+  sel
+}) {
+  const c = CASES.find(x => x.id === sel) || CASES[0];
+  const sevCol = {
+    'Crítico': C.red,
+    'Alto': C.amber,
+    'Medio': C.sky,
+    'Bajo': C.em
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Prompt, {
+    txt: "Todo despliegue de IA conlleva riesgos de privacidad, compliance, operaci\xF3n y estrategia. <strong>Selecciona los riesgos relevantes para tu caso</strong> y eval\xFAa si las mitigaciones propuestas son suficientes dado el marco regulatorio. \xBFQu\xE9 riesgos adicionales identificas t\xFA?"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 12,
+      flexWrap: 'wrap'
+    }
+  }, [[C.purple, 'Privacidad & PII', c.sensitivity.toLowerCase().includes('alta')], [C.amber, 'Vendor lock-in', true], [C.sky, 'Calidad del modelo', true], [C.red, 'Compliance legal', c.regulatory.length > 15]].map(([col, lbl, hi]) => /*#__PURE__*/React.createElement("div", {
+    key: lbl,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 5,
+      background: `${col}12`,
+      border: `1px solid ${col}28`,
+      borderRadius: 5,
+      padding: '3px 10px'
+    }
+  }, hi && /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 5,
+      height: 5,
+      borderRadius: '50%',
+      background: col
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: col,
+      fontSize: 9,
+      fontFamily: mono
+    }
+  }, lbl)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gap: 8
+    }
+  }, RISKS.map(r => {
+    const active = selRisks.includes(r.id);
+    const col = sevCol[r.sev] || C.sky;
+    return /*#__PURE__*/React.createElement("div", {
+      key: r.id,
+      onClick: () => setSelRisks(s => s.includes(r.id) ? s.filter(x => x !== r.id) : [...s, r.id]),
+      style: {
+        background: C.card,
+        border: `1px solid ${active ? col + '45' : C.border}`,
+        borderLeft: `3px solid ${active ? col : C.border}`,
+        borderRadius: 7,
+        padding: '10px 12px',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        opacity: active ? 1 : 0.6
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 5
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 7,
+        flexWrap: 'wrap'
+      }
+    }, /*#__PURE__*/React.createElement(Tag, {
+      label: r.sev,
+      col: col
+    }), /*#__PURE__*/React.createElement(Tag, {
+      label: r.cat,
+      col: col
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: C.text,
+        fontSize: 11,
+        fontWeight: 700
+      }
+    }, r.name)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 8,
+        fontSize: 9,
+        fontFamily: mono,
+        flexShrink: 0,
+        marginLeft: 8
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: C.muted
+      }
+    }, "Prob: ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: C.text
+      }
+    }, r.prob)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: C.muted
+      }
+    }, "Impacto: ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: col
+      }
+    }, r.impact)))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: C.muted,
+        fontSize: 10
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: C.em
+      }
+    }, "Mitigaci\xF3n: "), r.mit));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      background: C.amberDim,
+      border: '1px solid rgba(245,158,11,0.22)',
+      borderRadius: 6,
+      padding: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: C.amber,
+      fontFamily: mono,
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, "RIESGOS SELECCIONADOS: ", selRisks.length, " / ", RISKS.length), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: C.sub
+    }
+  }, "Caso ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: c.col
+    }
+  }, c.title), ": atenci\xF3n especial a ", /*#__PURE__*/React.createElement("strong", null, c.sensitivity.toLowerCase().includes('alta') ? 'privacidad y PII' : 'calidad del modelo y operación'), ". Marco: ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.red
+    }
+  }, c.regulatory))));
+}
+
+// ── M6: Executive Brief ──
+function M6({
+  sel,
+  decs,
+  board,
+  selArch,
+  selRisks
+}) {
+  const c = CASES.find(x => x.id === sel) || CASES[0];
+  const arch = ARCHS.find(a => a.id === selArch);
+  const risks = RISKS.filter(r => selRisks.includes(r.id));
+  const cd = decs.filter(Boolean).length;
+  const cb = board.filter(b => b.decision && b.kpi).length;
+  const score = Math.round(cd / 3 * 25 + cb / 3 * 25 + (selArch ? 25 : 0) + (selRisks.length >= 3 ? 25 : selRisks.length / 3 * 25));
+  const scCol = score >= 75 ? C.em : score >= 50 ? C.amber : C.red;
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Prompt, {
+    txt: "<strong>Tu entregable de consultor\xEDa.</strong> El brief ejecutivo sintetiza todo el an\xE1lisis para presentar ante direcci\xF3n. Un buen brief es <em>concreto, defendible y orientado a decisi\xF3n</em>. Revisa que cada secci\xF3n refleja el trabajo de los m\xF3dulos anteriores."
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 12,
+      marginBottom: 14,
+      flexWrap: 'wrap'
+    }
+  }, /*#__PURE__*/React.createElement(Card, {
+    col: scCol,
+    style: {
+      flex: 1,
+      minWidth: 190
+    }
+  }, /*#__PURE__*/React.createElement(SL, {
+    col: scCol
+  }, "COMPLETITUD DEL AN\xC1LISIS"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: scCol,
+      fontSize: 38,
+      fontWeight: 700,
+      fontFamily: mono,
+      marginBottom: 6
+    }
+  }, score, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16
+    }
+  }, "%")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gap: 4,
+      fontSize: 10,
+      fontFamily: mono
+    }
+  }, [['Decisiones críticas', cd + '/3', cd === 3 ? C.em : C.amber], ['Tablero decisión→KPI', cb + '/3', cb === 3 ? C.em : C.amber], ['Arquitectura elegida', selArch ? '✓' : '✗', selArch ? C.em : C.red], ['Riesgos analizados', selRisks.length + '/' + RISKS.length, selRisks.length >= 3 ? C.em : C.amber]].map(([l, v, col]) => /*#__PURE__*/React.createElement("div", {
+    key: l,
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.muted
+    }
+  }, l), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: col,
+      fontWeight: 700
+    }
+  }, v))))), /*#__PURE__*/React.createElement(Card, {
+    col: c.col,
+    style: {
+      flex: 2,
+      minWidth: 270
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 22
+    }
+  }, c.icon), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 9,
+      fontFamily: mono
+    }
+  }, c.sector.toUpperCase()), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.text,
+      fontSize: 14,
+      fontWeight: 700
+    }
+  }, c.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: c.col,
+      fontSize: 10,
+      fontFamily: mono
+    }
+  }, c.org))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.sub,
+      fontSize: 11,
+      lineHeight: 1.55
+    }
+  }, c.objective))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement(Card, {
+    col: C.ind
+  }, /*#__PURE__*/React.createElement(SL, {
+    col: C.ind
+  }, "A \u2014 DECISIONES CR\xCDTICAS"), decs.some(Boolean) ? decs.filter(Boolean).map((d, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: 'flex',
+      gap: 6,
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.ind,
+      fontFamily: mono,
+      fontWeight: 700
+    }
+  }, i + 1, "."), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.text,
+      fontSize: 11
+    }
+  }, d))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 11
+    }
+  }, "\u2190 Completa el M\xF3dulo 1")), /*#__PURE__*/React.createElement(Card, {
+    col: arch ? C.em : C.border
+  }, /*#__PURE__*/React.createElement(SL, {
+    col: arch ? C.em : C.muted
+  }, "B \u2014 ARQUITECTURA SELECCIONADA"), arch ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.text,
+      fontSize: 13,
+      fontWeight: 700,
+      marginBottom: 5
+    }
+  }, arch.icon, " ", arch.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 10,
+      marginBottom: 8
+    }
+  }, arch.bestFor), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexWrap: 'wrap'
+    }
+  }, arch.pros.slice(0, 3).map(p => /*#__PURE__*/React.createElement(Tag, {
+    key: p,
+    label: p,
+    col: C.em
+  })))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 11
+    }
+  }, "\u2190 Elige arquitectura en M\xF3dulo 3"))), /*#__PURE__*/React.createElement(Card, {
+    col: C.purple,
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement(SL, {
+    col: C.purple
+  }, "C \u2014 MAPA DECISI\xD3N \u2192 DATO \u2192 KPI"), board.some(b => b.decision) ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowX: 'auto'
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: '100%',
+      fontSize: 10,
+      fontFamily: mono,
+      borderCollapse: 'collapse',
+      minWidth: 500
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, ['Capa', 'Decisión', 'Dato', 'KPI', 'Owner'].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    style: {
+      color: C.muted,
+      textAlign: 'left',
+      padding: '4px 7px',
+      borderBottom: `1px solid ${C.border}`,
+      fontSize: 9
+    }
+  }, h)))), /*#__PURE__*/React.createElement("tbody", null, board.filter(b => b.decision).map((b, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i,
+    style: {
+      borderBottom: `1px solid ${C.border}`
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: {
+        Estratégica: C.purple,
+        Táctica: C.amber,
+        Operativa: C.em
+      }[b.layer],
+      padding: '4px 7px',
+      fontWeight: 700
+    }
+  }, b.layer), /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: C.text,
+      padding: '4px 7px'
+    }
+  }, b.decision || '—'), /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: C.sub,
+      padding: '4px 7px'
+    }
+  }, b.data || '—'), /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: C.em,
+      padding: '4px 7px'
+    }
+  }, b.kpi || '—'), /*#__PURE__*/React.createElement("td", {
+    style: {
+      color: C.muted,
+      padding: '4px 7px'
+    }
+  }, b.owner || '—')))))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 11
+    }
+  }, "\u2190 Completa el M\xF3dulo 2")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement(Card, {
+    col: C.red
+  }, /*#__PURE__*/React.createElement(SL, {
+    col: C.red
+  }, "D \u2014 RIESGOS PRIORITARIOS"), risks.length > 0 ? risks.slice(0, 4).map(r => /*#__PURE__*/React.createElement("div", {
+    key: r.id,
+    style: {
+      marginBottom: 7,
+      display: 'flex',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 6,
+      height: 6,
+      borderRadius: '50%',
+      background: {
+        Crítico: C.red,
+        Alto: C.amber,
+        Medio: C.sky
+      }[r.sev] || C.em,
+      flexShrink: 0,
+      marginTop: 4
+    }
+  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.text,
+      fontSize: 11,
+      fontWeight: 700
+    }
+  }, r.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 10,
+      lineHeight: 1.4
+    }
+  }, r.mit)))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 11
+    }
+  }, "\u2190 Selecciona riesgos en M\xF3dulo 5")), /*#__PURE__*/React.createElement(Card, {
+    col: C.amber
+  }, /*#__PURE__*/React.createElement(SL, {
+    col: C.amber
+  }, "E \u2014 RECOMENDACI\xD3N EJECUTIVA"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.amber,
+      fontSize: 11,
+      fontWeight: 700,
+      marginBottom: 6
+    }
+  }, "Despliegue recomendado \u2014 ", c.sector, ":"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.text,
+      fontSize: 11,
+      lineHeight: 1.6,
+      marginBottom: 8
+    }
+  }, arch ? `Arquitectura ${arch.name} seleccionada por su equilibrio entre ${arch.priv > 60 ? 'privacidad de dato' : 'optimización de coste'} y ${arch.lat > 70 ? 'cumplimiento de latencia' : 'escalabilidad a largo plazo'}. Riesgos principales mitigados mediante ${risks.length > 0 ? risks[0].mit.split(',')[0] : 'estrategia HITL y observabilidad continua'}.` : 'Define arquitectura y riesgos para auto-generar recomendación.'), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: C.muted,
+      fontFamily: mono,
+      marginBottom: 6
+    }
+  }, "CONDICIONES GO/NO-GO"), [`Presupuesto ≤ €${c.budget.toLocaleString('es-ES')}/mes`, `Compliance con ${c.regulatory.split(' · ')[0]}`, 'Validación humana configurada desde día 1', 'Observabilidad y alertas de drift activas'].map((cond, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: 'flex',
+      gap: 5,
+      marginBottom: 3
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.em,
+      fontFamily: mono,
+      flexShrink: 0
+    }
+  }, "\u2713"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.sub,
+      fontSize: 10
+    }
+  }, cond))))));
+}
+
+// ── MAIN APP ──
+const MODS = ['Inicio', 'Brief del Caso', 'Mapa de Decisiones', 'Arquitectura', 'Economía del Cómputo', 'Riesgo & Gobernanza', 'Brief Ejecutivo'];
+const ICONS = ['🏠', '📋', '🗺️', '🏗️', '💰', '⚠️', '📄'];
+const SESSION_MAP = [null, 'S5', 'S5', 'S5', 'S6', 'S6', 'S6'];
+const initBoard = () => ['Estratégica', 'Táctica', 'Operativa'].map(l => ({
+  layer: l,
+  decision: '',
+  data: '',
+  source: '',
+  frequency: 'Mensual',
+  owner: '',
+  kpi: '',
+  risk: ''
+}));
+function App() {
+  const [mod, setMod] = React.useState(0);
+  const [sel, setSel] = React.useState('health');
+  const [decs, setDecs] = React.useState(['', '', '']);
+  const [assu, setAssu] = React.useState(['', '', '']);
+  const [board, setBoard] = React.useState(initBoard);
+  const [selArch, setSelArch] = React.useState('saas');
+  const [selRisks, setSelRisks] = React.useState([]);
+  const content = [/*#__PURE__*/React.createElement(M0, null), /*#__PURE__*/React.createElement(M1, {
+    sel: sel,
+    setSel: setSel,
+    decs: decs,
+    setDecs: setDecs,
+    assu: assu,
+    setAssu: setAssu
+  }), /*#__PURE__*/React.createElement(M2, {
+    board: board,
+    setBoard: setBoard,
+    sel: sel
+  }), /*#__PURE__*/React.createElement(M3, {
+    selArch: selArch,
+    setSelArch: setSelArch,
+    sel: sel
+  }), /*#__PURE__*/React.createElement(M4, {
+    key: sel,
+    sel: sel
+  }), /*#__PURE__*/React.createElement(M5, {
+    selRisks: selRisks,
+    setSelRisks: setSelRisks,
+    sel: sel
+  }), /*#__PURE__*/React.createElement(M6, {
+    sel: sel,
+    decs: decs,
+    board: board,
+    selArch: selArch,
+    selRisks: selRisks
+  })];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.bg,
+      minHeight: '100vh',
+      color: C.text,
+      fontFamily: sans
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.panel,
+      borderBottom: `1px solid ${C.border}`,
+      padding: '9px 18px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      position: 'sticky',
+      top: 0,
+      zIndex: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 9
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16
+    }
+  }, "\uD83E\uDDE0"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.ind,
+      fontFamily: mono,
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: 2
+    }
+  }, "AI DEPLOYMENT LAB"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 8,
+      fontFamily: mono
+    }
+  }, "Sesiones 5\u20136 \xB7 Dise\xF1o de Sistemas \xB7 UNIE"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 3,
+      flexWrap: 'wrap'
+    }
+  }, MODS.map((m, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    onClick: () => setMod(i),
+    style: {
+      padding: '2px 8px',
+      fontFamily: mono,
+      fontSize: 8,
+      cursor: 'pointer',
+      borderRadius: 3,
+      background: i === mod ? C.ind : C.card,
+      color: i === mod ? '#fff' : i < mod ? C.ind : C.muted,
+      border: `1px solid ${i === mod ? C.ind : i < mod ? C.ind + '40' : C.border}`,
+      transition: 'all 0.2s'
+    }
+  }, ICONS[i], " ", i + 1)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.panel,
+      borderBottom: `1px solid ${C.border}`,
+      padding: '10px 18px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.muted,
+      fontSize: 9,
+      fontFamily: mono,
+      marginBottom: 2
+    }
+  }, "M\xD3DULO ", mod + 1, " / ", MODS.length), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: C.text,
+      fontSize: 17,
+      fontFamily: mono,
+      fontWeight: 700
+    }
+  }, ICONS[mod], " ", MODS[mod])), SESSION_MAP[mod] && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: SESSION_MAP[mod] === 'S5' ? C.indDim : C.amberDim,
+      border: `1px solid ${SESSION_MAP[mod] === 'S5' ? C.ind : C.amber}30`,
+      borderRadius: 5,
+      padding: '4px 10px'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: SESSION_MAP[mod] === 'S5' ? C.ind : C.amber,
+      fontFamily: mono,
+      fontSize: 10,
+      fontWeight: 700
+    }
+  }, SESSION_MAP[mod] === 'S5' ? 'SESIÓN 5 · Información para decidir' : 'SESIÓN 6 · Gestión del cómputo'))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '14px 18px',
+      maxWidth: 980,
+      margin: '0 auto'
+    }
+  }, content[mod]), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      background: C.panel,
+      borderTop: `1px solid ${C.border}`,
+      padding: '9px 18px',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMod(m => Math.max(0, m - 1)),
+    disabled: mod === 0,
+    style: btnStyle(false, mod === 0)
+  }, "\u2190 Anterior"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 5,
+      alignItems: 'center'
+    }
+  }, MODS.map((_, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    onClick: () => setMod(i),
+    style: {
+      width: i === mod ? 18 : 7,
+      height: 7,
+      borderRadius: 3.5,
+      background: i === mod ? C.ind : i < mod ? C.ind + '50' : C.border,
+      cursor: 'pointer',
+      transition: 'all 0.2s'
+    }
+  }))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMod(m => Math.min(MODS.length - 1, m + 1)),
+    disabled: mod === MODS.length - 1,
+    style: btnStyle(true, mod === MODS.length - 1)
+  }, "Siguiente \u2192")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 55
+    }
+  }));
+}
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(/*#__PURE__*/React.createElement(App, null));
+</script>
+</body>
+</html>

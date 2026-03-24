@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Deployment Lab · Sesiones 5 & 6 · UNIE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #03040f;
+  --panel:   #060814;
+  --card:    #090d20;
+  --border:  #111830;
+  --borderL: #1a2448;
+  --ind:     #6366f1;
+  --indDim:  rgba(99,102,241,0.10);
+  --amber:   #f59e0b;
+  --amberDim:rgba(245,158,11,0.09);
+  --em:      #10b981;
+  --emDim:   rgba(16,185,129,0.09);
+  --cyan:    #22d3ee;
+  --purple:  #a855f7;
+  --red:     #ef4444;
+  --sky:     #38bdf8;
+  --text:    #e2e8f0;
+  --sub:     #94a3b8;
+  --muted:   #3d4f6e;
+  --mono:    'IBM Plex Mono', 'Courier New', monospace;
+  --sans:    'IBM Plex Sans', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); font-weight: 300; line-height: 1.6; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--panel); }
+::-webkit-scrollbar-thumb { background: var(--borderL); border-radius: 2px; }
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(6,8,20,0.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 52px;
+}
+.nav-brand { display: flex; align-items: center; gap: 10px; }
+.nav-brand-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ind); }
+.nav-brand-text { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--ind); letter-spacing: 2px; }
+.nav-sub { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 1px; }
+.nav-links { display: flex; gap: 4px; }
+.nav-links a {
+  font-family: var(--mono); font-size: 10px; color: var(--muted);
+  text-decoration: none; padding: 4px 10px; border-radius: 3px;
+  border: 1px solid transparent; transition: all .2s;
+}
+.nav-links a:hover { color: var(--ind); border-color: var(--ind); background: var(--indDim); }
+.nav-cta {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  color: #fff; background: var(--ind); border: none;
+  padding: 6px 14px; border-radius: 4px; cursor: pointer;
+  text-decoration: none; transition: opacity .2s;
+}
+.nav-cta:hover { opacity: .85; }
+
+/* ── HERO ── */
+.hero {
+  min-height: 88vh; display: flex; align-items: center;
+  padding: 80px 32px 60px;
+  position: relative; overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: 
+    radial-gradient(ellipse 60% 50% at 20% 50%, rgba(99,102,241,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 60% at 80% 30%, rgba(245,158,11,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-grid {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image: 
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: .4;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 100%);
+}
+.hero-inner { max-width: 920px; margin: 0 auto; position: relative; }
+.hero-label {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  color: var(--amber); letter-spacing: 3px;
+  border: 1px solid rgba(245,158,11,0.3); background: rgba(245,158,11,0.07);
+  display: inline-block; padding: 3px 10px; border-radius: 3px;
+  margin-bottom: 24px;
+  animation: fadeUp .5s ease both;
+}
+h1 {
+  font-family: var(--mono); font-size: clamp(28px, 5vw, 52px);
+  font-weight: 700; color: var(--text); line-height: 1.1;
+  margin-bottom: 8px;
+  animation: fadeUp .5s .1s ease both;
+}
+h1 span { color: var(--ind); }
+.hero-subtitle {
+  font-size: 16px; color: var(--sub); font-weight: 300;
+  margin-bottom: 36px; max-width: 540px;
+  animation: fadeUp .5s .2s ease both;
+}
+.hero-stats {
+  display: flex; gap: 24px; flex-wrap: wrap;
+  margin-bottom: 40px;
+  animation: fadeUp .5s .3s ease both;
+}
+.hero-stat {
+  border-left: 2px solid var(--ind);
+  padding-left: 12px;
+}
+.hero-stat-val { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--ind); }
+.hero-stat-lbl { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 2px; }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; animation: fadeUp .5s .4s ease both; }
+.btn-primary {
+  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  color: #fff; background: var(--ind);
+  padding: 10px 22px; border-radius: 5px; text-decoration: none;
+  border: 1px solid var(--ind); transition: all .2s;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.btn-primary:hover { background: #7274f3; }
+.btn-secondary {
+  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  color: var(--sub); background: var(--card);
+  padding: 10px 22px; border-radius: 5px; text-decoration: none;
+  border: 1px solid var(--border); transition: all .2s;
+}
+.btn-secondary:hover { border-color: var(--ind); color: var(--ind); }
+
+/* ── SECTION ── */
+section { padding: 72px 32px; }
+.section-inner { max-width: 960px; margin: 0 auto; }
+.section-label {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 3px; color: var(--muted);
+  margin-bottom: 6px;
+}
+h2 { font-family: var(--mono); font-size: 26px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.section-lead { font-size: 15px; color: var(--sub); max-width: 600px; margin-bottom: 40px; }
+.divider { border: none; border-top: 1px solid var(--border); margin: 72px 0 0; }
+
+/* ── CARDS ── */
+.case-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; }
+.case-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 24px;
+  transition: border-color .2s, transform .2s;
+  position: relative; overflow: hidden;
+}
+.case-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--accent-color, var(--ind));
+}
+.case-card:hover { border-color: var(--accent-color, var(--ind)); transform: translateY(-2px); }
+.case-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.case-icon { font-size: 28px; flex-shrink: 0; }
+.case-sector {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 2px; color: var(--accent-color, var(--ind));
+  margin-bottom: 3px;
+}
+.case-title { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.case-org { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.case-objective { font-size: 12px; color: var(--sub); line-height: 1.6; margin-bottom: 16px; }
+.case-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.meta-item {
+  background: rgba(255,255,255,.02); border: 1px solid var(--border);
+  border-radius: 5px; padding: 7px 10px;
+}
+.meta-label { font-family: var(--mono); font-size: 8px; color: var(--muted); letter-spacing: 1px; margin-bottom: 2px; }
+.meta-val { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent-color, var(--ind)); }
+.case-reg {
+  font-family: var(--mono); font-size: 10px; color: var(--red);
+  background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.2);
+  border-radius: 4px; padding: 6px 10px; margin-bottom: 12px;
+}
+.case-constraints { margin-bottom: 12px; }
+.constraint {
+  display: flex; gap: 7px; margin-bottom: 5px;
+  font-size: 11px; color: var(--sub); line-height: 1.4;
+}
+.constraint-arrow { color: var(--amber); font-family: var(--mono); flex-shrink: 0; }
+.case-signals { }
+.signal {
+  display: flex; gap: 7px; margin-bottom: 5px;
+  font-size: 11px; color: var(--sub); line-height: 1.4;
+}
+.signal-dot { color: var(--em); font-family: var(--mono); flex-shrink: 0; font-size: 9px; margin-top: 2px; }
+.case-sub { font-family: var(--mono); font-size: 8px; color: var(--muted); letter-spacing: 1px; margin-bottom: 6px; font-weight: 700; }
+
+/* ── TIMELINE ── */
+.sessions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media(max-width: 700px) { .sessions-grid { grid-template-columns: 1fr; } }
+.session-block {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  overflow: hidden;
+}
+.session-header {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.session-badge {
+  font-family: var(--mono); font-size: 18px; font-weight: 700;
+  width: 40px; height: 40px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.session-title { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--text); }
+.session-subtitle { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.session-steps { padding: 12px 0; }
+.step {
+  display: flex; align-items: flex-start; gap: 0;
+  padding: 0 20px;
+}
+.step-line { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.step-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.step-connector { width: 1px; background: var(--border); flex: 1; min-height: 16px; }
+.step-body { flex: 1; padding: 2px 0 16px 12px; }
+.step-time { font-family: var(--mono); font-size: 9px; color: var(--muted); margin-bottom: 2px; }
+.step-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.step-desc { font-size: 11px; color: var(--sub); line-height: 1.5; }
+.step-tag {
+  display: inline-block; font-family: var(--mono); font-size: 9px; font-weight: 700;
+  padding: 1px 7px; border-radius: 3px; margin-top: 4px;
+}
+
+.instr-block {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 24px; margin-bottom: 16px;
+}
+.instr-title { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.instr-title-num { font-size: 18px; color: var(--ind); }
+.instr-list li { font-size: 13px; color: var(--sub); line-height: 1.7; padding-left: 4px; margin-bottom: 4px; }
+.instr-list li::marker { color: var(--ind); }
+.instr-list { padding-left: 20px; }
+
+/* ── RUBRIC ── */
+.rubric-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead tr { background: var(--panel); }
+th {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 1px; color: var(--muted); text-align: left;
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--sub); vertical-align: top; line-height: 1.5; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(99,102,241,0.03); }
+.rubric-dim { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--text); white-space: nowrap; }
+.rubric-pct { font-family: var(--mono); font-size: 13px; font-weight: 700; text-align: center; white-space: nowrap; }
+.rubric-level {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 3px; margin-bottom: 4px; display: inline-block;
+}
+.rubric-desc { font-size: 11px; color: var(--muted); }
+.rubric-total { background: rgba(99,102,241,0.06); }
+.rubric-total td { font-family: var(--mono); font-weight: 700; color: var(--ind); font-size: 13px; }
+
+/* ── LAUNCH ── */
+.launch-section {
+  background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(245,158,11,0.04) 100%);
+  border-top: 1px solid var(--border);
+  text-align: center; padding: 80px 32px;
+}
+.launch-inner { max-width: 600px; margin: 0 auto; }
+.launch-icon { font-size: 56px; margin-bottom: 20px; }
+.launch-title { font-family: var(--mono); font-size: 28px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+.launch-desc { font-size: 15px; color: var(--sub); margin-bottom: 32px; }
+.btn-launch {
+  font-family: var(--mono); font-size: 14px; font-weight: 700;
+  color: #fff; background: var(--ind);
+  padding: 14px 36px; border-radius: 6px; text-decoration: none;
+  border: 1px solid var(--ind); transition: all .2s;
+  display: inline-block;
+  box-shadow: 0 0 32px rgba(99,102,241,0.25);
+}
+.btn-launch:hover { background: #7274f3; box-shadow: 0 0 48px rgba(99,102,241,0.4); }
+.launch-note { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 16px; }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--panel); border-top: 1px solid var(--border);
+  padding: 24px 32px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+}
+.footer-text { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.footer-text a { color: var(--ind); text-decoration: none; }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeUp .5s ease both; }
+
+/* ── RESPONSIVE ── */
+@media(max-width: 640px) {
+  nav { padding: 0 16px; }
+  .nav-links { display: none; }
+  section { padding: 48px 16px; }
+  .case-grid { grid-template-columns: 1fr; }
+  .hero { padding: 60px 16px 48px; }
+  footer { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <div class="nav-brand-dot"></div>
+    <div>
+      <div class="nav-brand-text">AI DEPLOYMENT LAB</div>
+      <div class="nav-sub">UNIE Universidad · Diseño de Sistemas de Información</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="#casos">Los Casos</a>
+    <a href="#instrucciones">Instrucciones</a>
+    <a href="#rubrica">Rúbrica</a>
+  </div>
+  <a class="nav-cta" href="lab.html" target="_blank">▶ Abrir el Lab</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="hero-grid"></div>
+  <div class="hero-inner">
+    <div class="hero-label">SESIONES 5 & 6 · TALLER ACTIVO</div>
+    <h1>Diseño de Sistemas<br>de <span>Información con IA</span></h1>
+    <p class="hero-subtitle">De la decisión de negocio a la arquitectura de cómputo. Un taller en dos actos que simula el trabajo real de consultoría en despliegue de IA.</p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-val">4h</div>
+        <div class="hero-stat-lbl">DURACIÓN</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">2</div>
+        <div class="hero-stat-lbl">SESIONES</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">4</div>
+        <div class="hero-stat-lbl">CASOS REALES</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">6</div>
+        <div class="hero-stat-lbl">MÓDULOS</div>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <a class="btn-primary" href="lab.html" target="_blank">▶ &nbsp;Abrir el Lab interactivo</a>
+      <a class="btn-secondary" href="#casos">Ver los casos →</a>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- CASOS -->
+<section id="casos">
+  <div class="section-inner">
+    <div class="section-label">LOS CUATRO CASOS</div>
+    <h2>Elige tu escenario de consultoría</h2>
+    <p class="section-lead">Cada grupo trabaja sobre un caso real de despliegue de IA. Cuatro sectores, cuatro conjuntos de restricciones, cuatro conversaciones regulatorias distintas.</p>
+
+    <div class="case-grid">
+
+      <!-- SALUD -->
+      <div class="case-card" style="--accent-color: #10b981;">
+        <div class="case-header">
+          <div class="case-icon">🏥</div>
+          <div>
+            <div class="case-sector">SALUD</div>
+            <div class="case-title">Resumen Clínico & Codificación Asistida</div>
+            <div class="case-org">Hospital universitario — 8 centros, 1.200 profesionales sanitarios</div>
+          </div>
+        </div>
+        <div class="case-objective">Automatizar resúmenes de historia clínica y codificación CIE-10 para reducir carga documental en urgencias y consultas externas.</div>
+        <div class="case-meta">
+          <div class="meta-item"><div class="meta-label">USUARIOS</div><div class="meta-val">1.200</div></div>
+          <div class="meta-item"><div class="meta-label">PRESUPUESTO/MES</div><div class="meta-val">€18.000</div></div>
+          <div class="meta-item"><div class="meta-label">LATENCIA REQ.</div><div class="meta-val">Alta (&lt;2s)</div></div>
+          <div class="meta-item"><div class="meta-label">SENSIBILIDAD</div><div class="meta-val">Muy alta (PHI)</div></div>
+        </div>
+        <div class="case-reg">RGPD · LOPDGDD · ENS · AI Act (alto riesgo)</div>
+        <div class="case-sub">RESTRICCIONES CLAVE</div>
+        <div class="case-constraints">
+          <div class="constraint"><span class="constraint-arrow">→</span>Datos no pueden salir de infraestructura EU</div>
+          <div class="constraint"><span class="constraint-arrow">→</span>Auditoría obligatoria de cada decisión automática</div>
+          <div class="constraint"><span class="constraint-arrow">→</span>Validación humana en toda inferencia clínica</div>
+          <div class="constraint"><span class="constraint-arrow">→</span>Presupuesto cerrado, no ampliable en 18 meses</div>
+        </div>
+        <div class="case-sub">SEÑALES DEL CONTEXTO</div>
+        <div class="case-signals">
+          <div class="signal"><span class="signal-dot">◆</span>30% del tiempo médico se consume en documentación</div>
+          <div class="signal"><span class="signal-dot">◆</span>Tasa de error en codificación manual: 12%</div>
+          <div class="signal"><span class="signal-dot">◆</span>Objetivo: reducir reingresos evitables un 15%</div>
+        </div>
+      </div>
+
+      <!-- TECNOLOGÍA -->
+      <div class="case-card" style="--accent-color: #38bdf8;">
+        <div class="case-header">
+          <div class="case-icon">💻</div>
+          <div>
+            <div class="case-sector">TECNOLOGÍA</div>
+            <div class="case-title">Copiloto Técnico para Desarrolladores</div>
+            <div class="case-org">Empresa SaaS B2B — 45.000 desarrolladores activos en 60 países</div>
+          </div>
+        </div>
+        <div class="case-objective">Asistente embebido en IDE para autocompletar código, generar tests unitarios y responder consultas sobre la API propia de la plataforma.</div>
+        <div class="case-meta">
+          <div class="meta-item"><div class="meta-label">USUARIOS</div><div class="meta-val">45.000</div></div>
+          <div class="meta-item"><div class="meta-label">PRESUPUESTO/MES</div><div class="meta-val">€85.000</div></div>
+          <div class="meta-item"><div class="meta-label">LATENCIA REQ.</div><div class="meta-val">Muy alta (&lt;500ms)</div></div>
+          <div class="meta-item"><div class="meta-label">SENSIBILIDAD</div><div class="meta-val">Media (código)</div></div>
+        </div>
+        <div class="case-reg">SOC2 Type II · ISO 27001 · CCPA</div>
+        <div class="case-sub">RESTRICCIONES CLAVE</div>
+        <div class="case-constraints">
+          <div class="constraint"><span class="constraint-arrow">→</span>Latencia p99 &lt; 500ms obligatoria</div>
+          <div class="constraint"><span class="constraint-arrow">→</span>Coste máximo $0.002/interacción</div>
+          <div class="constraint"><span class="constraint-arrow">→</span>Disponibilidad 99.9% · SLA contractual</div>
+          <div class="constraint"><span class="constraint-arrow">→</span>Sin retención de código en proveedor externo</div>
+        </div>
+        <div class="case-sub">SEÑALES DEL CONTEXTO</div>
+        <div class="case-signals">
+          <div class="signal"><span class="signal-dot">◆</span>NPS de herramientas internas: 62</div>
+          <div class="signal"><span class="signal-dot">◆</span>Tiempo de onboarding a API: 3 semanas</div>
+          <div class="signal"><span class="signal-dot">◆</span>Churn correlaciona con fricción técnica en primeras 48h</div>
+        </div>
+      </div>
+
+      <!-- BANCA -->
+      <div class="case-card" style="--accent-color: #f59e0b;">
+        <div class="case-header">
+          <div class="case-icon">🏦</div>
+          <div>
+            <div class="case-sector">BANCA & SEGUROS</div>
+            <div class="case-title">Atención al Cliente & Detección de Fraude Documental</div>
+            <div class="case-org">Banco mediano — 280.000 clientes activos, operación en 5 países EU</div>
+          </div>
+        </div>
+        <div class="case-objective">Chatbot regulatorio multilingüe para consultas de clientes y asistente de verificación de documentación en altas y tramitación de siniestros.</div>
+        <div class="case-meta">
+          <div class="meta-item"><div class="meta-label">USUARIOS</div><div class="meta-val">280.000</div></div>
+          <div class="meta-item"><div class="meta-label">PRESUPUESTO/MES</div><div class="meta-val">€120.000</div></div>
+          <div class="meta-item"><div class="meta-label">LATENCIA REQ.</div><div class="meta-val">Alta (&lt;3s)</div></div>
+          <div class="meta-item"><div class="meta-label">SENSIBILIDAD</div><div class="meta-val">Muy alta (PII fin.)</div></div>
+        </div>
+        <div class="case-reg">DORA · GDPR · PSD2 · MiFID II · AI Act</div>
+        <div class="case-sub">RESTRICCIONES CLAVE</div>
+        <div class="case-constraints">
+          <div class="constraint"><span class="constraint-arrow">→</span>Explicabilidad completa de toda decisión automática</div>
+          <div class="constraint"><span class="constraint-arrow">→</span>Human-in-the-loop obligatorio para denegaciones</div>
+          <div class="constraint"><span class="constraint-arrow">→</span>Fallback local si falla proveedor principal</div>
+          <div class="constraint"><span class="constraint-arrow">→</span>Auditoría regulatoria completa exportable</div>
+        </div>
+        <div class="case-sub">SEÑALES DEL CONTEXTO</div>
+        <div class="case-signals">
+          <div class="signal"><span class="signal-dot">◆</span>Coste por interacción humana: €4,20</div>
+          <div class="signal"><span class="signal-dot">◆</span>68% de consultas son repetitivas y resolubles</div>
+          <div class="signal"><span class="signal-dot">◆</span>Tasa fraude documental: 0,3% — pérdida media €12K/caso</div>
+        </div>
+      </div>
+
+      <!-- RETAIL -->
+      <div class="case-card" style="--accent-color: #a855f7;">
+        <div class="case-header">
+          <div class="case-icon">📦</div>
+          <div>
+            <div class="case-sector">RETAIL & LOGÍSTICA</div>
+            <div class="case-title">Previsión de Demanda & Asistente Operativo</div>
+            <div class="case-org">Cadena de distribución — 320 almacenes, 8.500 operarios</div>
+          </div>
+        </div>
+        <div class="case-objective">Modelo de previsión de demanda para optimizar stock y asistente conversacional para consultas operativas de empleados de almacén.</div>
+        <div class="case-meta">
+          <div class="meta-item"><div class="meta-label">USUARIOS</div><div class="meta-val">8.500</div></div>
+          <div class="meta-item"><div class="meta-label">PRESUPUESTO/MES</div><div class="meta-val">€42.000</div></div>
+          <div class="meta-item"><div class="meta-label">LATENCIA REQ.</div><div class="meta-val">Media (&lt;5s)</div></div>
+          <div class="meta-item"><div class="meta-label">SENSIBILIDAD</div><div class="meta-val">Baja-Media (ops.)</div></div>
+        </div>
+        <div class="case-reg">RGPD básico · NIS2 (infraestructura)</div>
+        <div class="case-sub">RESTRICCIONES CLAVE</div>
+        <div class="case-constraints">
+          <div class="constraint"><span class="constraint-arrow">→</span>Integración con ERP SAP existente</div>
+          <div class="constraint"><span class="constraint-arrow">→</span>Operarios con baja alfabetización digital</div>
+          <div class="constraint"><span class="constraint-arrow">→</span>Picos de volumen ×8 en campañas estacionales</div>
+          <div class="constraint"><span class="constraint-arrow">→</span>ROI demostrable en 6 meses</div>
+        </div>
+        <div class="case-sub">SEÑALES DEL CONTEXTO</div>
+        <div class="case-signals">
+          <div class="signal"><span class="signal-dot">◆</span>Rotura de stock: €2,1M/año de pérdida</div>
+          <div class="signal"><span class="signal-dot">◆</span>Exceso inventario: €800K en capital parado</div>
+          <div class="signal"><span class="signal-dot">◆</span>Tiempo búsqueda de información por operario: 18 min/turno</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- INSTRUCCIONES -->
+<section id="instrucciones">
+  <div class="section-inner">
+    <div class="section-label">GUÍA DEL ALUMNO</div>
+    <h2>Instrucciones del taller</h2>
+    <p class="section-lead">Dos sesiones de dos horas cada una. En cada módulo, el alumno trabaja primero sin asistencia de IA —formulando su propio juicio— antes de contrastar con las referencias del lab.</p>
+
+    <div class="sessions-grid" style="margin-bottom:32px;">
+
+      <!-- SESIÓN 5 -->
+      <div class="session-block">
+        <div class="session-header">
+          <div class="session-badge" style="background:rgba(99,102,241,0.12);color:var(--ind);">5</div>
+          <div>
+            <div class="session-title">Sesión 5 — Información para decidir</div>
+            <div class="session-subtitle">2 horas · Módulos 1, 2 y 3</div>
+          </div>
+        </div>
+        <div class="session-steps">
+          <div class="step">
+            <div class="step-line"><div class="step-dot" style="background:var(--ind);"></div><div class="step-connector"></div></div>
+            <div class="step-body">
+              <div class="step-time">0:00 – 0:15</div>
+              <div class="step-name">Introducción & selección de caso</div>
+              <div class="step-desc">El profesor presenta el contexto. Cada grupo elige su sector y lee el brief completo sin abrir el lab todavía.</div>
+              <span class="step-tag" style="background:rgba(99,102,241,0.1);color:var(--ind);">📋 Módulo 1</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-line"><div class="step-dot" style="background:var(--purple);"></div><div class="step-connector"></div></div>
+            <div class="step-body">
+              <div class="step-time">0:15 – 1:00</div>
+              <div class="step-name">Mapa Decisión → Dato → KPI</div>
+              <div class="step-desc">Completar el tablero de trazabilidad en las tres capas (estratégica, táctica, operativa). Identificar fuente, frecuencia, owner y KPI para cada decisión antes de cargar el ejemplo.</div>
+              <span class="step-tag" style="background:rgba(168,85,247,0.1);color:var(--purple);">🗺️ Módulo 2 · núcleo S5</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-line"><div class="step-dot" style="background:var(--amber);"></div><div class="step-connector"></div></div>
+            <div class="step-body">
+              <div class="step-time">1:00 – 1:30</div>
+              <div class="step-name">Puesta en común y defensa oral</div>
+              <div class="step-desc">Cada grupo comparte su mapa con el resto. El profesor modera: ¿qué decisiones faltan? ¿qué fuentes de datos son irrealistas?</div>
+              <span class="step-tag" style="background:rgba(245,158,11,0.1);color:var(--amber);">💬 Debate plenario</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-line"><div class="step-dot" style="background:var(--em);"></div></div>
+            <div class="step-body">
+              <div class="step-time">1:30 – 2:00</div>
+              <div class="step-name">Introducción a arquitecturas de despliegue</div>
+              <div class="step-desc">Exploración del Módulo 3. ¿Qué patrón de despliegue encaja con tu caso? Primer contacto con el radar de características antes de la sesión 6.</div>
+              <span class="step-tag" style="background:rgba(16,185,129,0.1);color:var(--em);">🏗️ Módulo 3 · puente</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SESIÓN 6 -->
+      <div class="session-block">
+        <div class="session-header">
+          <div class="session-badge" style="background:rgba(245,158,11,0.12);color:var(--amber);">6</div>
+          <div>
+            <div class="session-title">Sesión 6 — Gestión del cómputo</div>
+            <div class="session-subtitle">2 horas · Módulos 4, 5 y 6</div>
+          </div>
+        </div>
+        <div class="session-steps">
+          <div class="step">
+            <div class="step-line"><div class="step-dot" style="background:var(--amber);"></div><div class="step-connector"></div></div>
+            <div class="step-body">
+              <div class="step-time">0:00 – 0:45</div>
+              <div class="step-name">Economía del cómputo · simulación</div>
+              <div class="step-desc">Ajusta los sliders con los parámetros reales de tu caso. Compara GPT-4o, GPT-4o mini, Llama 70B y Azure PTU. Responde las 5 preguntas de reflexión por escrito antes de ver el coste final.</div>
+              <span class="step-tag" style="background:rgba(245,158,11,0.1);color:var(--amber);">💰 Módulo 4 · núcleo S6</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-line"><div class="step-dot" style="background:var(--red);"></div><div class="step-connector"></div></div>
+            <div class="step-body">
+              <div class="step-time">0:45 – 1:15</div>
+              <div class="step-name">Riesgo & gobernanza · AI Act</div>
+              <div class="step-desc">Selecciona los riesgos relevantes para tu caso. Para cada uno: ¿es suficiente la mitigación propuesta? ¿hay riesgos no listados específicos de tu sector? Añádelos en el brief.</div>
+              <span class="step-tag" style="background:rgba(239,68,68,0.1);color:var(--red);">⚠️ Módulo 5</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-line"><div class="step-dot" style="background:var(--cyan);"></div><div class="step-connector"></div></div>
+            <div class="step-body">
+              <div class="step-time">1:15 – 1:45</div>
+              <div class="step-name">Brief ejecutivo · presentación</div>
+              <div class="step-desc">Revisa el brief auto-generado. Completa las secciones vacías, ajusta la recomendación ejecutiva y prepara 3 minutos de defensa ante la clase.</div>
+              <span class="step-tag" style="background:rgba(34,211,238,0.1);color:var(--cyan);">📄 Módulo 6 · entregable</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-line"><div class="step-dot" style="background:var(--em);"></div></div>
+            <div class="step-body">
+              <div class="step-time">1:45 – 2:00</div>
+              <div class="step-name">Presentación & cierre</div>
+              <div class="step-desc">Cada grupo defiende su brief en 3 minutos. El profesor evalúa la solidez de la argumentación según la rúbrica.</div>
+              <span class="step-tag" style="background:rgba(16,185,129,0.1);color:var(--em);">🎤 Defensa oral</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- NORMAS -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;">
+      <div class="instr-block">
+        <div class="instr-title"><span class="instr-title-num">📌</span> Normas del taller</div>
+        <ul class="instr-list">
+          <li>Cada grupo trabaja sobre <strong>un único caso</strong> durante las dos sesiones.</li>
+          <li>En cada módulo, formula tu respuesta <strong>antes</strong> de pulsar "Cargar ejemplo".</li>
+          <li>La IA puede usarse como consultor, no como redactor: las decisiones las toma el equipo.</li>
+          <li>El brief ejecutivo (Módulo 6) es el único entregable evaluable.</li>
+          <li>Grupos de 3–4 personas; rol de portavoz rotatorio.</li>
+        </ul>
+      </div>
+      <div class="instr-block">
+        <div class="instr-title"><span class="instr-title-num">🎯</span> Objetivos de aprendizaje</div>
+        <ul class="instr-list">
+          <li>Mapear la trazabilidad <strong>Decisión → Dato → KPI</strong> en tres capas organizacionales.</li>
+          <li>Seleccionar arquitectura de IA justificando latencia, privacidad y coste.</li>
+          <li>Simular y razonar sobre la economía de tokens en producción.</li>
+          <li>Identificar riesgos regulatorios reales (AI Act, RGPD, DORA).</li>
+          <li>Producir un brief ejecutivo defendible ante stakeholders no técnicos.</li>
+        </ul>
+      </div>
+      <div class="instr-block">
+        <div class="instr-title"><span class="instr-title-num">⚠️</span> Errores frecuentes a evitar</div>
+        <ul class="instr-list">
+          <li>Elegir arquitectura <strong>antes</strong> de definir el mapa de decisiones.</li>
+          <li>Ignorar el marco regulatorio al seleccionar proveedor.</li>
+          <li>Usar sliders con valores por defecto sin ajustar al caso real.</li>
+          <li>Confundir KPI de proceso con KPI de resultado de negocio.</li>
+          <li>Presentar el brief sin score de completitud superior al 75%.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- RÚBRICA -->
+<section id="rubrica">
+  <div class="section-inner">
+    <div class="section-label">EVALUACIÓN</div>
+    <h2>Rúbrica de evaluación</h2>
+    <p class="section-lead">El brief ejecutivo (Módulo 6) es el entregable principal. Se evalúan cuatro dimensiones con igual peso. La defensa oral puede subir o bajar hasta ±5 puntos del total.</p>
+
+    <div class="rubric-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="min-width:160px;">DIMENSIÓN</th>
+            <th style="min-width:50px;text-align:center;">PESO</th>
+            <th style="min-width:180px;">INSUFICIENTE (0–4)</th>
+            <th style="min-width:180px;">SUFICIENTE (5–6)</th>
+            <th style="min-width:180px;">NOTABLE (7–8)</th>
+            <th style="min-width:180px;">EXCELENTE (9–10)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="rubric-dim">A · Mapa de Decisiones</div>
+              <div class="rubric-desc">Módulo 2 · Trazabilidad Decisión→Dato→KPI en las 3 capas</div>
+            </td>
+            <td class="rubric-pct" style="color:var(--red);">25%</td>
+            <td>
+              <span class="rubric-level" style="background:rgba(239,68,68,0.1);color:var(--red);">0–4</span>
+              <div class="rubric-desc">Menos de 2 capas completadas. KPIs ausentes o no medibles. Fuentes inventadas.</div>
+            </td>
+            <td>
+              <span class="rubric-level" style="background:rgba(245,158,11,0.1);color:var(--amber);">5–6</span>
+              <div class="rubric-desc">3 capas completadas. KPIs presentes pero vagos. Fuentes plausibles sin justificación.</div>
+            </td>
+            <td>
+              <span class="rubric-level" style="background:rgba(99,102,241,0.1);color:var(--ind);">7–8</span>
+              <div class="rubric-desc">Trazabilidad clara en las 3 capas. KPIs medibles y proporcionales. Fuentes reales identificadas.</div>
+            </td>
+            <td>
+              <span class="rubric-level" style="background:rgba(16,185,129,0.1);color:var(--em);">9–10</span>
+              <div class="rubric-desc">Trazabilidad completa y coherente. KPIs con umbral cuantitativo. Owner definido. Frecuencia justificada por el caso.</div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="rubric-dim">B · Arquitectura & Economía</div>
+              <div class="rubric-desc">Módulos 3–4 · Justificación del patrón de despliegue y análisis de coste</div>
+            </td>
+            <td class="rubric-pct" style="color:var(--red);">25%</td>
+            <td>
+              <span class="rubric-level" style="background:rgba(239,68,68,0.1);color:var(--red);">0–4</span>
+              <div class="rubric-desc">Arquitectura elegida sin justificación. Sin análisis de coste. Parámetros por defecto no ajustados.</div>
+            </td>
+            <td>
+              <span class="rubric-level" style="background:rgba(245,158,11,0.1);color:var(--amber);">5–6</span>
+              <div class="rubric-desc">Arquitectura elegida con razón parcial. Coste simulado pero sin contraste entre opciones.</div>
+            </td>
+            <td>
+              <span class="rubric-level" style="background:rgba(99,102,241,0.1);color:var(--ind);">7–8</span>
+              <div class="rubric-desc">Arquitectura justificada por latencia y privacidad. Comparativa de al menos 3 proveedores. Parámetros ajustados al caso.</div>
+            </td>
+            <td>
+              <span class="rubric-level" style="background:rgba(16,185,129,0.1);color:var(--em);">9–10</span>
+              <div class="rubric-desc">Justificación completa con encaje regulatorio. Análisis de trade-offs explícito. Estrategia de caching/batch razonada. Coste dentro del presupuesto del caso.</div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="rubric-dim">C · Riesgo & Gobernanza</div>
+              <div class="rubric-desc">Módulo 5 · Identificación y mitigación de riesgos con marco regulatorio</div>
+            </td>
+            <td class="rubric-pct" style="color:var(--red);">25%</td>
+            <td>
+              <span class="rubric-level" style="background:rgba(239,68,68,0.1);color:var(--red);">0–4</span>
+              <div class="rubric-desc">Menos de 2 riesgos seleccionados. Sin alusión al marco regulatorio del caso. Mitigaciones copiadas literalmente.</div>
+            </td>
+            <td>
+              <span class="rubric-level" style="background:rgba(245,158,11,0.1);color:var(--amber);">5–6</span>
+              <div class="rubric-desc">3–4 riesgos seleccionados. Marco regulatorio mencionado. Mitigaciones genéricas.</div>
+            </td>
+            <td>
+              <span class="rubric-level" style="background:rgba(99,102,241,0.1);color:var(--ind);">7–8</span>
+              <div class="rubric-desc">5+ riesgos seleccionados y priorizados. Mitigaciones adaptadas al sector. AI Act clasificado correctamente.</div>
+            </td>
+            <td>
+              <span class="rubric-level" style="background:rgba(16,185,129,0.1);color:var(--em);">9–10</span>
+              <div class="rubric-desc">Riesgos priorizados por probabilidad × impacto. Al menos 1 riesgo propio no listado. Mitigaciones con responsable y plazo. Compliance argumentado con normativa específica.</div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="rubric-dim">D · Brief Ejecutivo</div>
+              <div class="rubric-desc">Módulo 6 · Calidad del entregable y defensa oral</div>
+            </td>
+            <td class="rubric-pct" style="color:var(--red);">25%</td>
+            <td>
+              <span class="rubric-level" style="background:rgba(239,68,68,0.1);color:var(--red);">0–4</span>
+              <div class="rubric-desc">Completitud &lt;50%. Recomendación ejecutiva ausente o contradictoria. No se defiende en clase.</div>
+            </td>
+            <td>
+              <span class="rubric-level" style="background:rgba(245,158,11,0.1);color:var(--amber);">5–6</span>
+              <div class="rubric-desc">Completitud 50–74%. Las 5 secciones presentes pero superficiales. Defensa oral breve.</div>
+            </td>
+            <td>
+              <span class="rubric-level" style="background:rgba(99,102,241,0.1);color:var(--ind);">7–8</span>
+              <div class="rubric-desc">Completitud ≥75%. Recomendación coherente con el análisis. Defensa oral clara y responde preguntas.</div>
+            </td>
+            <td>
+              <span class="rubric-level" style="background:rgba(16,185,129,0.1);color:var(--em);">9–10</span>
+              <div class="rubric-desc">Completitud ≥90%. Condiciones GO/NO-GO explicitadas. Recomendación defendible ante dirección no técnica. Preguntas del profesor respondidas con solidez.</div>
+            </td>
+          </tr>
+          <tr class="rubric-total">
+            <td colspan="2"><strong>NOTA FINAL</strong> — suma ponderada de las 4 dimensiones ± ajuste de defensa oral (máx. ±0,5 puntos)</td>
+            <td colspan="4" style="color:var(--sub);font-family:var(--mono);font-size:11px;">
+              El score de completitud del Módulo 6 es orientativo. La nota la asigna el profesor sobre el brief entregado y la defensa oral.<br>
+              Grupos con score &lt;50% en el lab no pueden presentar la defensa oral.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Criterios transversales -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:20px;">
+      <div class="instr-block" style="border-left:3px solid var(--em);">
+        <div class="instr-title" style="color:var(--em);">✓ Criterios positivos</div>
+        <ul class="instr-list">
+          <li>Identificar tensiones entre requisitos (ej. privacidad vs latencia)</li>
+          <li>Proponer riesgos no listados, específicos del sector</li>
+          <li>Justificar desacuerdos con las mitigaciones propuestas</li>
+          <li>Demostrar razonamiento económico (umbral de rentabilidad entre opciones)</li>
+        </ul>
+      </div>
+      <div class="instr-block" style="border-left:3px solid var(--red);">
+        <div class="instr-title" style="color:var(--red);">✗ Penalizaciones automáticas</div>
+        <ul class="instr-list">
+          <li>Arquitectura incompatible con el marco regulatorio del caso (−2 pts en dimensión B)</li>
+          <li>KPIs no medibles cuantitativamente (−1 pt por KPI en dimensión A)</li>
+          <li>Score de completitud &lt;50% (no apto para defensa oral)</li>
+          <li>Costes simulados fuera del presupuesto del caso sin justificación</li>
+        </ul>
+      </div>
+      <div class="instr-block" style="border-left:3px solid var(--amber);">
+        <div class="instr-title" style="color:var(--amber);">🏅 Distinción de excelencia</div>
+        <ul class="instr-list">
+          <li>Brief completitud ≥90% en el lab</li>
+          <li>Riesgo propio identificado con mitigación plausible</li>
+          <li>Análisis coste-beneficio explícito entre dos arquitecturas</li>
+          <li>Defensa oral: responde la pregunta «¿por qué no la alternativa X?»</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- LAUNCH -->
+<div class="launch-section">
+  <div class="launch-inner">
+    <div class="launch-icon">🧠</div>
+    <div class="launch-title">AI Deployment Lab</div>
+    <p class="launch-desc">6 módulos interactivos. 4 casos reales. Simulación de coste en tiempo real. Brief ejecutivo auto-generado con rúbrica integrada.</p>
+    <a class="btn-launch" href="lab.html" target="_blank">▶ &nbsp;Abrir el Lab</a>
+    <div class="launch-note">Se abre en una nueva pestaña · Sin instalación · Funciona offline tras cargar</div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-text">
+    <strong style="color:var(--ind);">AI Deployment Lab</strong> · Diseño de Sistemas de Información · Sesiones 5 &amp; 6<br>
+    UNIE Universidad · <a href="mailto:jtamames@unie.es">jtamames@unie.es</a> · ORCID 0009-0007-8851-9833
+  </div>
+  <div class="footer-text" style="text-align:right;">
+    Taller activo · Método LIJ<br>
+    <span style="color:var(--muted);">Curso 2025–2026</span>
+  </div>
+</footer>
+
+</body>
+</html>
